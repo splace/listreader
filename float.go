@@ -19,7 +19,7 @@ const (
 
 const maxUint = math.MaxUint64 / 10
 
-// A Floats is the state of a float-point Reader.
+// A Floats is the state of a floating-point Reader.
 type Floats struct {
 	io.Reader
 	Delimiter      byte
@@ -66,7 +66,7 @@ func (l *Floats) ReadAll() (fs []float64, err error) {
 	return
 }
 
-// ReadCounter, like Read, reads delimited items and places their float-point decodings into the supplied buffer, until reader exhausted, an error or buffer is full.
+// ReadCounter, like Read, reads delimited items and places their floating-point decodings into the supplied buffer, until reader exhausted, an error or buffer is full.
 // But unlike Read it also increments, a pointed too int, by the number of reads.
 // Can be used to find the byte position of a parse failure by using on a Float with a unit buffer size, only intended for testing data sets and/or for retrospective location, due to the lack of buffering giving poor performance.
 func (l *Floats) ReadCounter(fs []float64, pos *int) (c int, err error) {
@@ -77,7 +77,7 @@ func (l *Floats) ReadCounter(fs []float64, pos *int) (c int, err error) {
 	return
 }
 
-// Read reads delimited items and places their float-point decodings into the supplied buffer, until reader exhausted, buffer is full or an error.
+// Read reads delimited items and places their floating-point decodings into the supplied buffer, until reader exhausted, buffer is full or an error.
 func (l *Floats) Read(fs []float64) (c int, err error) {
 	var power10 func(uint64) float64
 	power10 = func(n uint64) float64 {

@@ -1,6 +1,10 @@
 # listreader
 
-Status: (Should work, wide unit testing, but not well used.)
+Status: (Should work, wide unit testing, but not extensively used.)
+
+3 to 10 times faster than naive std lib implementation.(csv.reader or bufio.Scanner)
+
+100MB/s for me. (Y.R.M.V.)
 
 Overview/docs: [![GoDoc](https://godoc.org/github.com/splace/listreader?status.svg)](https://godoc.org/github.com/splace/listreader) 
 
