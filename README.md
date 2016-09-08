@@ -6,9 +6,9 @@ Overview/docs: [![GoDoc](https://godoc.org/github.com/splace/listreader?status.s
 
 Installation:
 
-     go get github.com/splace/listreader
+     go get github.com/splace/listReader
 
-Example:
+Example: parse sequences of 3 floats at a time.
 ```go
 package main
 
