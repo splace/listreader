@@ -11,7 +11,7 @@ in this implementation one, settable, byte is allowed as the 'single' delimiter 
 
 common 'single' delimiters might be; ',' ' ' '\t' '\n' '\x1F' '\x00' 
 
-a returned flag indicates if any items failed to parse.
+an exposed flag indicates if any items failed to parse.
 
 the unconsumed buffer is exposed.
 
