@@ -23,10 +23,10 @@ func main(){
 	itemBuf := make([]float64, 3)
 	for err, c,f := error(nil),0, 0; err == nil; {
 		c, err = reader.Read(itemBuf[f:])
-		f+=c
+     	f+=c
      	if f<3 {continue}
-      	f=0
      	fmt.Println(itemBuf)
-	}
+     	f=0
+ 	}
 }
 ```
