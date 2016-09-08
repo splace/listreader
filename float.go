@@ -1,4 +1,4 @@
-package listReader
+package listreader
 
 import "io"
 import "math"

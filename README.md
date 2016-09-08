@@ -6,7 +6,7 @@ Overview/docs: [![GoDoc](https://godoc.org/github.com/splace/listreader?status.s
 
 Installation:
 
-     go get github.com/splace/listReader
+     go get github.com/splace/listreader
 
 Example: parse sequences of 3 floats at a time.
 ```go
@@ -14,12 +14,12 @@ package main
 
 import "os"
 import "fmt"
-import "github.com/splace/listReader"
+import "github.com/splace/listreader"
 
 func main(){
    	file, err := os.Open(os.Args[1])
 	defer file.Close()
-	reader := listReader.NewFloats(file,',')
+	reader := listreader.NewFloats(file,',')
 	itemBuf := make([]float64, 3)
 	for err, c,f := error(nil),0, 0; err == nil; {
 		c, err = reader.Read(itemBuf[f:])

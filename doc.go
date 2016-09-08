@@ -16,5 +16,5 @@ a returned flag indicates if any items failed to parse.
 the unconsumed buffer is exposed.
 
 */
-package listReader
+package listreader
 
