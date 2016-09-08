@@ -27,10 +27,7 @@ func main(){
 	for err, c,f := error(nil),0, 0; err == nil; {
 		c, err = reader.Read(itemBuf[f:])
 		f+=c
-      	if err != nil {
-	     	panic(err)
-	     }
-      	if f<3 {continue}
+     	if f<3 {continue}
       	f=0
      	fmt.Println(itemBuf)
 	}
