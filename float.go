@@ -138,10 +138,10 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	}
 	var n int
 	var b []byte
-	if len(l.unBuf) != 0 { // use any unread first
-		n = len(l.unBuf)
-		b = l.unBuf
-		l.unBuf = l.unBuf[0:0]
+	if len(l.UnBuf) != 0 { // use any unread first
+		n = len(l.UnBuf)
+		b = l.UnBuf
+		l.UnBuf = l.UnBuf[0:0]
 	} else {
 		n, err = l.Reader.Read(l.buf)
 		b = l.buf
@@ -207,7 +207,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			case inWhole, inFraction, inExponent,nan:
 				setVal()
 				if c >= len(fs) {
-					l.unBuf = b[i+1 : n]
+					l.UnBuf = b[i+1 : n]
 					return c, nil
 				}
 			}
@@ -219,7 +219,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			case inWhole, inFraction, inExponent:
 				setVal()
 				if c >= len(fs) {
-					l.unBuf = b[i+1 : n]
+					l.UnBuf = b[i+1 : n]
 					return c, nil
 				}
 			}
