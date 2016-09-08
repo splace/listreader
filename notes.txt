@@ -1,0 +1,8 @@
+read.me
+
+can sustain 100MB/s on a modern PC.
+
+3 to 10 times speedup compared to a naive std lib implementation.(csv.reader or bufio.Scanner)
+
+
+ 
