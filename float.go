@@ -163,7 +163,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			case beginFraction:
 				l.stage = inFraction
 				l.fraction = uint64(b[i]) - 48
-				l.fractionDigits=1
+				l.fractionDigits = 1
 			case inFraction:
 				if l.fraction > maxUint {
 					l.stage = nan
@@ -204,7 +204,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			case beginFraction, exponentSign:
 				l.stage = nan
 				fallthrough
-			case inWhole, inFraction, inExponent,nan:
+			case inWhole, inFraction, inExponent, nan:
 				setVal()
 				if c >= len(fs) {
 					l.UnBuf = b[i+1 : n]
@@ -253,5 +253,4 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	}
 	return c, err
 }
-
 

@@ -1,10 +1,10 @@
 # listreader
 
-Status: (Should work, wide unit testing, but not extensively used.)
+Status: (Should work, much testing, but not extensively used on variety of data sets.)
 
 3 to 10 times faster than naive std lib implementation.(csv.reader or bufio.Scanner)
 
-100MB/s for me. (Y.R.M.V.)
+100MB/s for me, YRMV.
 
 Overview/docs: [![GoDoc](https://godoc.org/github.com/splace/listreader?status.svg)](https://godoc.org/github.com/splace/listreader) 
 
@@ -12,7 +12,7 @@ Installation:
 
      go get github.com/splace/listreader
 
-Example: parse sequences of 3 floats at a time.
+Example: parse file in 3 float CSV groups.
 ```go
 package main
 
