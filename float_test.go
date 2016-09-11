@@ -20,10 +20,10 @@ func TestFloatsRandom(t *testing.T) {
 	buf:=bytes.NewBuffer(make([]byte,0,1000000))
 	tot:=big.NewFloat(0)
 	for i:=0;i<8;i++{	
-		f1:=rand.NormFloat64()*100
+		f1:=rand.NormFloat64()/100
 		f2:=rand.NormFloat64()
 		f3:=rand.NormFloat64()
-		f4:=rand.NormFloat64()*100000
+		f4:=rand.NormFloat64()/100000
 		f5:=rand.NormFloat64()
 		f6:=rand.NormFloat64()
 		d1:=rand.Int31n(rand.Int31())

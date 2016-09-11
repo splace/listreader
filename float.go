@@ -187,15 +187,15 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			switch l.stage {
 			case begin, inWhole:
 				l.stage = beginFraction
-			case beginFraction, inFraction, inExponent, exponentSign:
+			default:
 				l.stage = nan
 			}
 		case 'e', 'E':
 			switch l.stage {
-			case begin, beginFraction, inExponent, exponentSign:
-				l.stage = nan
 			case inWhole, inFraction:
 				l.stage = exponentSign
+			default:
+				l.stage = nan
 			}
 		case l.Delimiter: // delimiter
 			switch l.stage {
@@ -204,7 +204,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			case beginFraction, exponentSign:
 				l.stage = nan
 				fallthrough
-			case inWhole, inFraction, inExponent, nan:
+			default:
 				setVal()
 				if c >= len(fs) {
 					l.UnBuf = b[i+1 : n]
@@ -231,7 +231,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			case exponentSign:
 				l.negExponent = true
 				l.stage = inExponent
-			case inWhole, inFraction, inExponent, beginFraction:
+			default:
 				l.stage = nan
 			}
 		case '+':
@@ -240,7 +240,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 				l.stage = inWhole
 			case exponentSign:
 				l.stage = inExponent
-			case inWhole, inFraction, inExponent, beginFraction:
+			default:
 				l.stage = nan
 			}
 
