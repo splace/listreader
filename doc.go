@@ -1,5 +1,5 @@
 /*
-Package listReaders can parse delimited lists of text encoded floating point numbers.
+Package listReader can parse delimited lists of text encoded floating point numbers.
 
 the delimiters and digits interpretations are integrated, and unconsumed bytes are internally buffered, for speed.
 
