@@ -19,7 +19,7 @@ const (
 
 const maxUint = math.MaxUint64 / 10
 
-// A Floats is the state of a floating-point Reader.
+// Floats is the state, and behaviour, of a floating-point Reader.
 type Floats struct {
 	io.Reader
 	Delimiter      byte
@@ -35,12 +35,12 @@ type Floats struct {
 	UnBuf          []byte // unconsumed bytes remaining in internal buffer after last read
 }
 
-// NewFloats returns a Floats reading from r with the default buffer size.
+// NewFloats returns a Floats reading items from r separated by d, with the default buffer size.
 func NewFloats(r io.Reader, d byte) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bytes.MinRead)}
 }
 
-// NewFloatsSize returns a Floats reading from r with a set buffer size
+// NewFloatsSize returns a Floats reading items from r separated by d, with an internal buffer size of bSize.
 func NewFloatsSize(r io.Reader, d byte, bSize int) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bSize)}
 }
@@ -50,7 +50,7 @@ type ErrAnyNaN struct {
 }
 
 // ReadAll returns all the floating-point decodings available from Floats, in a slice.
-// Any non-parsable items are returned in the slice as NaN, and cause an ErrAnyNaN error.
+// Any non-parsable items encountered are returned, in the slice, as NaN values, and cause an ErrAnyNaN error to be returned on completion.
 func (l *Floats) ReadAll() (fs []float64, err error) {
 	fbuf := make([]float64, 100)
 	for c := 0; err == nil; {
@@ -66,9 +66,9 @@ func (l *Floats) ReadAll() (fs []float64, err error) {
 	return
 }
 
-// ReadCounter, like Read, reads delimited items and places their decoded floating-point values into the supplied buffer,  until the embedded reader needs to be read again, an error or buffer is full.
-// But unlike Read it also increments a referenced int, by the number of reads.
-// Can be used to find the byte position of a parse failure by using on a Float with a unit buffer size, only intended for testing data sets and/or for retrospective location, due to the lack of buffering giving poor performance.
+// ReadCounter, like Read, reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, an error occurs or the buffer is full.
+// But unlike Read it also increments an int, by the number of reads it has made.
+// It can be used to find the byte position of a parse failure, this is done by using on a Float with a unit buffer size. This is only intended for testing data sets and/or for retrospective location, due to its lack of buffering giving poor performance.
 func (l *Floats) ReadCounter(fs []float64, pos *int) (c int, err error) {
 	for c == 0 && err == nil {
 		c, err = l.Read(fs)
@@ -77,7 +77,7 @@ func (l *Floats) ReadCounter(fs []float64, pos *int) (c int, err error) {
 	return
 }
 
-// Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, buffer is full or an error.
+// Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, the buffer is full or an error occurs.
 func (l *Floats) Read(fs []float64) (c int, err error) {
 	var power10 func(uint64) float64
 	power10 = func(n uint64) float64 {
@@ -138,7 +138,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	}
 	var n int
 	var b []byte
-	if len(l.UnBuf) != 0 { // use any unread first
+	if len(l.UnBuf) != 0 { // use any unprocessed first
 		n = len(l.UnBuf)
 		b = l.UnBuf
 		l.UnBuf = l.UnBuf[0:0]
@@ -197,7 +197,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			default:
 				l.stage = nan
 			}
-		case l.Delimiter: // delimiter
+		case l.Delimiter: // single delimiter
 			switch l.stage {
 			case begin:
 				l.stage = nan
