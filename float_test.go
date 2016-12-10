@@ -365,4 +365,48 @@ func BenchmarkFloatFileCompareWithWork(b *testing.B) {
 	}
 }
 
+/*  Hal3 Sat 10 Dec 22:54:48 GMT 2016 go version go1.6.2 linux/amd64
+PASS
+BenchmarkFloat-2                   	 2000000	       616 ns/op
+BenchmarkFloatCompare-2            	  300000	      5547 ns/op
+BenchmarkFloatCompare2-2           	  200000	      6761 ns/op
+BenchmarkFloatFile-2               	     100	  19730212 ns/op
+BenchmarkFloatMemoryFile-2         	     100	  18766585 ns/op
+BenchmarkFloatCounterFile-2        	       2	 691049174 ns/op
+BenchmarkFloatFileCompare-2        	      20	  65189177 ns/op
+BenchmarkFloatFileWithWork-2       	      50	  33405717 ns/op
+BenchmarkFloatFileCompareWithWork-2	      20	  72606346 ns/op
+ok  	_/home/simon/Dropbox/github/working/listreader	104.469s
+Sat 10 Dec 22:56:35 GMT 2016
+*/
+/*  Hal3 Sat 10 Dec 22:56:48 GMT 2016  go version go1.8beta1 linux/amd64
+
+BenchmarkFloat-2                      	 3000000	       480 ns/op
+BenchmarkFloatCompare-2               	  300000	      4466 ns/op
+BenchmarkFloatCompare2-2              	  200000	      6219 ns/op
+BenchmarkFloatFile-2                  	     200	   9250083 ns/op
+BenchmarkFloatMemoryFile-2            	     200	   8111544 ns/op
+BenchmarkFloatCounterFile-2           	       2	 649340174 ns/op
+BenchmarkFloatFileCompare-2           	      30	  53495402 ns/op
+BenchmarkFloatFileWithWork-2          	     100	  18653515 ns/op
+BenchmarkFloatFileCompareWithWork-2   	      20	  58622886 ns/op
+PASS
+ok  	_/home/simon/Dropbox/github/working/listreader	116.500s
+Sat 10 Dec 22:58:45 GMT 2016
+*/
+/*  Hal3 Sat 10 Dec 23:01:08 GMT 2016  go version go1.7.4 linux/amd64
+
+BenchmarkFloat-2                      	 3000000	       593 ns/op
+BenchmarkFloatCompare-2               	  300000	      5442 ns/op
+BenchmarkFloatCompare2-2              	  300000	      6100 ns/op
+BenchmarkFloatFile-2                  	     100	  17214377 ns/op
+BenchmarkFloatMemoryFile-2            	     100	  16143210 ns/op
+BenchmarkFloatCounterFile-2           	       2	 672503621 ns/op
+BenchmarkFloatFileCompare-2           	      20	  57873963 ns/op
+BenchmarkFloatFileWithWork-2          	      50	  26278526 ns/op
+BenchmarkFloatFileCompareWithWork-2   	      20	  61528912 ns/op
+PASS
+ok  	_/home/simon/Dropbox/github/working/listreader	120.633s
+Sat 10 Dec 23:03:10 GMT 2016
+*/
 
