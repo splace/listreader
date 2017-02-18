@@ -6,9 +6,9 @@ Status: (Should work, much testing, but not extensively used on variety of data 
 
 100MB/s for me, YRMV.
 
-(update: go1.8beta much faster, +100% (std.lib. 10% faster) so now 5 to 15 times faster.)
+(update: go1.8 much faster, +100% (std.lib. 10% faster) so now 5 to 15 times faster.)
 
-not actually optimised, just uses a fast algorithm, so should be able to be made faster.
+not actually optimised, just uses a an inline 'flat implementation, so should be able to be made faster.
 
 Overview/docs: [![GoDoc](https://godoc.org/github.com/splace/listreader?status.svg)](https://godoc.org/github.com/splace/listreader) 
 
