@@ -4,11 +4,13 @@ import "io"
 import "math"
 import "bytes"
 import "errors"
+//import "fmt"
 
 type progress uint8
 
 const (
 	begin progress = iota
+	start
 	inWhole
 	beginFraction
 	inFraction
@@ -33,6 +35,7 @@ type Floats struct {
 	AnyNaN         bool   // set if any parsing issue
 	buf            []byte // reusable buffer for reader, same backing array as Unbuf.
 	UnBuf          []byte // unconsumed bytes remaining in internal buffer after last read
+	LastDelimiter  byte   // delimiter after last item
 }
 
 // NewFloats returns a Floats reading items from r separated by d, with the default buffer size.
@@ -110,10 +113,10 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	var setVal func()
 	setVal = func() {
 		switch l.stage {
-		case nan, exponentSign, beginFraction:
+		case nan, exponentSign:
 			l.AnyNaN = true
 			fs[c] = math.NaN()
-		case inWhole:
+		case inWhole, beginFraction:
 			fs[c] = float64(l.whole)
 		case inFraction:
 			fs[c] = float64(l.whole) + float64(l.fraction)/power10(uint64(l.fractionDigits))
@@ -127,7 +130,6 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		if l.neg {
 			fs[c] = -fs[c]
 		}
-		l.stage = begin
 		l.whole = 0
 		l.fraction = 0
 		l.fractionDigits = 0
@@ -138,7 +140,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	}
 	var n int
 	var b []byte
-	if len(l.UnBuf) != 0 { // use any unprocessed first
+	if len(l.UnBuf) > 0 { // use any unprocessed first, but skip first byte, its just saved separator
 		n = len(l.UnBuf)
 		b = l.UnBuf
 		l.UnBuf = l.UnBuf[0:0]
@@ -150,7 +152,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		switch b[i] {
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			switch l.stage {
-			case begin:
+			case begin,start:
 				l.stage = inWhole
 				l.whole = uint64(b[i]) - 48
 			case inWhole:
@@ -185,7 +187,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '.':
 			switch l.stage {
-			case begin, inWhole:
+			case begin,start, inWhole:
 				l.stage = beginFraction
 			default:
 				l.stage = nan
@@ -198,14 +200,18 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 				l.stage = nan
 			}
 		case l.Delimiter: // single delimiter
+			//fmt.Println(l)
 			switch l.stage {
 			case begin:
 				l.stage = nan
-			case beginFraction, exponentSign:
+			case start:
+				l.stage = begin
+			case exponentSign:
 				l.stage = nan
 				fallthrough
 			default:
 				setVal()
+				l.stage=begin
 				if c >= len(fs) {
 					l.UnBuf = b[i+1 : n]
 					return c, nil
@@ -213,11 +219,12 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case ' ', '\n', '\r', '\t', '\f': // delimiters but multiple occurrences only count as one.
 			switch l.stage {
-			case exponentSign, beginFraction:
+			case exponentSign:
 				l.stage = nan
 				fallthrough
-			case inWhole, inFraction, inExponent:
+			case inWhole, inFraction, inExponent, beginFraction:
 				setVal()
+				l.stage=start
 				if c >= len(fs) {
 					l.UnBuf = b[i+1 : n]
 					return c, nil
@@ -225,7 +232,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '-':
 			switch l.stage {
-			case begin:
+			case begin,start:
 				l.neg = true
 				l.stage = inWhole
 			case exponentSign:
@@ -236,7 +243,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '+':
 			switch l.stage {
-			case begin:
+			case begin,start:
 				l.stage = inWhole
 			case exponentSign:
 				l.stage = inExponent
@@ -248,9 +255,9 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			l.stage = nan
 		}
 	}
-	if err != nil && l.stage != begin {
+	if err != nil && l.stage != begin && l.stage != start{
 		setVal()
+		l.stage=begin
 	}
 	return c, err
 }
-

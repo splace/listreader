@@ -15,47 +15,46 @@ import "strconv"
 import "math/rand"
 import "math/big"
 
-
 func TestFloatsRandom(t *testing.T) {
-	buf:=bytes.NewBuffer(make([]byte,0,1000000))
-	tot:=big.NewFloat(0)
-	for i:=0;i<8;i++{	
-		f1:=rand.NormFloat64()/100
-		f2:=rand.NormFloat64()
-		f3:=rand.NormFloat64()
-		f4:=rand.NormFloat64()/100000
-		f5:=rand.NormFloat64()
-		f6:=rand.NormFloat64()
-		d1:=rand.Int31n(rand.Int31())
-		d2:=-rand.Int31n(rand.Int31())
-		d3:=rand.Int31n(rand.Int31())
-		d4:=-rand.Int31n(100)
-		d5:=rand.Int31n(10)
-		d6:=-rand.Int31n(1000)
-		fmt.Fprintf(buf,"%g,%g,%+g,%g,%g,%g,%d,%v,%+d,%d,%d,%d,",f1,f2,f3,f4,f5,f6,d1,d2,d3,d4,d5,d6)
-		tot.Add(tot,big.NewFloat(float64(d1)))
-		tot.Add(tot,big.NewFloat(float64(d2)))
-		tot.Add(tot,big.NewFloat(float64(d3)))
-		tot.Add(tot,big.NewFloat(float64(d4)))
-		tot.Add(tot,big.NewFloat(float64(d5)))
-		tot.Add(tot,big.NewFloat(float64(d6)))
-		tot.Add(tot,big.NewFloat(f1))
-		tot.Add(tot,big.NewFloat(f2))
-		tot.Add(tot,big.NewFloat(f3))
-		tot.Add(tot,big.NewFloat(f4))
-		tot.Add(tot,big.NewFloat(f5))
-		tot.Add(tot,big.NewFloat(f6))
+	buf := bytes.NewBuffer(make([]byte, 0, 1000000))
+	tot := big.NewFloat(0)
+	for i := 0; i < 8; i++ {
+		f1 := rand.NormFloat64() / 100
+		f2 := rand.NormFloat64()
+		f3 := rand.NormFloat64()
+		f4 := rand.NormFloat64() / 100000
+		f5 := rand.NormFloat64()
+		f6 := rand.NormFloat64()
+		d1 := rand.Int31n(rand.Int31())
+		d2 := -rand.Int31n(rand.Int31())
+		d3 := rand.Int31n(rand.Int31())
+		d4 := -rand.Int31n(100)
+		d5 := rand.Int31n(10)
+		d6 := -rand.Int31n(1000)
+		fmt.Fprintf(buf, "%g,%g,%+g,%g,%g,%g,%d,%v,%+d,%d,%d,%d,", f1, f2, f3, f4, f5, f6, d1, d2, d3, d4, d5, d6)
+		tot.Add(tot, big.NewFloat(float64(d1)))
+		tot.Add(tot, big.NewFloat(float64(d2)))
+		tot.Add(tot, big.NewFloat(float64(d3)))
+		tot.Add(tot, big.NewFloat(float64(d4)))
+		tot.Add(tot, big.NewFloat(float64(d5)))
+		tot.Add(tot, big.NewFloat(float64(d6)))
+		tot.Add(tot, big.NewFloat(f1))
+		tot.Add(tot, big.NewFloat(f2))
+		tot.Add(tot, big.NewFloat(f3))
+		tot.Add(tot, big.NewFloat(f4))
+		tot.Add(tot, big.NewFloat(f5))
+		tot.Add(tot, big.NewFloat(f6))
 	}
-	fmt.Fprint(buf,"1")
-	tot.Add(tot,big.NewFloat(float64(1)))
-	
-	bs:=buf.Bytes()
+	fmt.Fprint(buf, "1")
+	tot.Add(tot, big.NewFloat(float64(1)))
+
+	bs := buf.Bytes()
 
 	//fmt.Println(buf)
-	
+
 	scanner := bufio.NewScanner(bytes.NewBuffer(bs))
-	tot1:= big.NewFloat(0)
-	c1:=0
+	tot1 := big.NewFloat(0)
+	c1 := 0
 	onComma := func(data []byte, atEOF bool) (advance int, token []byte, err error) {
 		for i := 0; i < len(data); i++ {
 			if data[i] == ',' {
@@ -70,13 +69,13 @@ func TestFloatsRandom(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		c1=c1+1
-		tot1.Add(tot1,big.NewFloat(x))
+		c1 = c1 + 1
+		tot1.Add(tot1, big.NewFloat(x))
 	}
 
 	reader := csv.NewReader(bytes.NewBuffer(bs))
-	tot2:= big.NewFloat(0)
-	c2:=0
+	tot2 := big.NewFloat(0)
+	c2 := 0
 	rows, _ := reader.ReadAll()
 	for _, row := range rows {
 		for _, item := range row {
@@ -84,30 +83,30 @@ func TestFloatsRandom(t *testing.T) {
 			if err != nil {
 				panic(err)
 			}
-			c2=c2+1
-			tot2.Add(tot2,big.NewFloat(x))
+			c2 = c2 + 1
+			tot2.Add(tot2, big.NewFloat(x))
 		}
 	}
-	
-	fReader := NewFloats(bytes.NewBuffer(bs),',')
-	tot3:= big.NewFloat(0)
-	c3:=0
+
+	fReader := NewFloats(bytes.NewBuffer(bs), ',')
+	tot3 := big.NewFloat(0)
+	c3 := 0
 	itemBuf := make([]float64, 1000)
 	for err, c := error(nil), 0; err == nil; {
 		c, err = fReader.Read(itemBuf)
-		for _,x:=range itemBuf[:c]{
-			c3=c3+1
-			tot3.Add(tot3,big.NewFloat(x))
+		for _, x := range itemBuf[:c] {
+			c3 = c3 + 1
+			tot3.Add(tot3, big.NewFloat(x))
 		}
 	}
-	
-//  original total not equal to parsed totals!!
-// TODO must be string rep of big not exact with some edge case, dont have to=ime to track down now
-//	if tot.Cmp(tot1)!=0 || tot1.Cmp(tot2)!=0 || tot2.Cmp(tot3)!=0 {
-//		t.Error(fmt.Sprintf("%v != %v != %v != %v",tot,tot1,tot2,tot3))
-//	}
-	if tot1.Cmp(tot2)!=0 || tot2.Cmp(tot3)!=0 {
-		t.Error(fmt.Sprintf("%v != %v != %v",tot1,tot2,tot3))
+
+	//  original total not equal to parsed totals!!
+	// TODO must be string rep of big not exact with some edge case, dont have to=ime to track down now
+	//	if tot.Cmp(tot1)!=0 || tot1.Cmp(tot2)!=0 || tot2.Cmp(tot3)!=0 {
+	//		t.Error(fmt.Sprintf("%v != %v != %v != %v",tot,tot1,tot2,tot3))
+	//	}
+	if tot1.Cmp(tot2) != 0 || tot2.Cmp(tot3) != 0 {
+		t.Error(fmt.Sprintf("%v != %v != %v", tot1, tot2, tot3))
 	}
 }
 
@@ -133,8 +132,9 @@ func ReadFloats(r io.Reader) ([]float64, error) {
 	return result, scanner.Err()
 }
 
+
 func TestFloatsParse(t *testing.T) {
-	reader := strings.NewReader(" 1 2 -3 \t4 50e-1 +6 700., 8 9 \n\f 10.0001\t000001,1e01,\"eof\"")
+	reader := strings.NewReader(" 1 2 -3 \t4 ,50e-1 +6 700., 8 9 \n\f 10.0001\t000001,1e01,\"eof\"")
 	//var bufLen int64 = 1
 	var i int
 	fReader := NewFloats(reader,',')
@@ -144,16 +144,16 @@ func TestFloatsParse(t *testing.T) {
 		if c == 0 {
 			continue
 		}
-		if fmt.Sprint(err, coordsBuf[:c])!=[]string{"<nil> [1]","<nil> [2]","<nil> [-3]","<nil> [4]","<nil> [5]","<nil> [6]","<nil> [NaN]"}[i]{
-			t.Error("")
+		if fmt.Sprint(err, coordsBuf[:])!=[]string{"<nil> [1]","<nil> [2]","<nil> [-3]","<nil> [4]","<nil> [5]","<nil> [6]","<nil> [700]","<nil> [8]","<nil> [9]","<nil> [10.0001]","<nil> [1]","<nil> [10]","EOF [NaN]"}[i]{
+			t.Error(i,fmt.Sprint(err, coordsBuf[:]))
 		}
 		i++
 		if fReader.AnyNaN {
 			switch r := fReader.Reader.(type) {
 			case io.Seeker:
 				pos, _ := r.Seek(0, os.SEEK_CUR) //pos,_:=r.Seek(0,io.SeekCurrent)
-				if pos!=58{
-					t.Error("pos not 58")
+				if pos!=59{
+					t.Error(fmt.Sprintf("pos not 59 %d",pos))
 				}
 			default:
 				fmt.Println("NaN")
@@ -163,22 +163,22 @@ func TestFloatsParse(t *testing.T) {
 	}
 }
 
+
 func TestFloatsParseNaN(t *testing.T) {
 	reader := strings.NewReader(" 1 2 -3 \t4 50e-1 +6 700. 8 9, \n\f 10.0001\t000001,1e01")
-	fReader := NewFloats(reader,'\n')
+	fReader := NewFloats(reader, '\n')
 	nums, err := fReader.ReadAll()
-	if _,ok:=err.(ErrAnyNaN);!ok{
+	if _, ok := err.(ErrAnyNaN); !ok {
 		t.Error("no NaN found.")
 	}
-//	switch err.(type) {
-//	case ErrAnyNaN:
-//		fmt.Println("some NaN")
-//	}
-	if fmt.Sprint(nums)!="[1 2 -3 4 5 6 NaN 8 NaN 10.0001 NaN]"{
-		t.Error(fmt.Sprint(nums)+"!=[1 2 -3 4 5 6 NaN 8 NaN 10.0001 NaN]" )	
+	//	switch err.(type) {
+	//	case ErrAnyNaN:
+	//		fmt.Println("some NaN")
+	//	}
+	if fmt.Sprint(nums) != "[1 2 -3 4 5 6 700 8 NaN 10.0001 NaN]" {
+		t.Error(fmt.Sprint(nums) + "!=[1 2 -3 4 5 6 700 8 NaN 10.0001 NaN]")
 	}
 }
-
 
 func TestFloatsParse2(t *testing.T) {
 	file, err := os.Open("floatlist.txt")
@@ -186,31 +186,66 @@ func TestFloatsParse2(t *testing.T) {
 		panic(err)
 	}
 	defer file.Close()
-	fReader := NewFloats(file,',')
+	fReader := NewFloats(file, ',')
 	coordsBuf := make([]float64, 2)
 	c, err := fReader.Read(coordsBuf)
-	if err!=nil || fmt.Sprint(coordsBuf[:c])!="[1 2]"{
-		t.Error(fmt.Sprint(coordsBuf[:c])+"!=[1 2]")
+	if err != nil || fmt.Sprint(coordsBuf[:c]) != "[1 2]" {
+		t.Error(fmt.Sprint(coordsBuf[:c]) + "!=[1 2]")
 	}
 	c, err = fReader.Read(coordsBuf)
-	if err!=nil || fmt.Sprint(coordsBuf[:c])!="[-3 4]"{
-		t.Error(fmt.Sprint(coordsBuf[:c])+"!=[-3 4]")
+	if err != nil || fmt.Sprint(coordsBuf[:c]) != "[-3 4]" {
+		t.Error(fmt.Sprint(coordsBuf[:c]) + "!=[-3 4]")
 	}
 	c, err = fReader.Read(coordsBuf)
-	if err!=nil || fmt.Sprint(coordsBuf[:c])!="[5 6]"{
-		t.Error(fmt.Sprint(coordsBuf[:c])+"!=[5 6]")
+	if err != nil || fmt.Sprint(coordsBuf[:c]) != "[5 6]" {
+		t.Error(fmt.Sprint(coordsBuf[:c]) + "!=[5 6]")
 	}
 	c, err = fReader.Read(coordsBuf)
-	if err!=nil || fmt.Sprint(coordsBuf[:c])!="[NaN 8]"{
-		t.Error(fmt.Sprint(coordsBuf[:c])+"!=[NaN 8]")
+	if err != nil || fmt.Sprint(coordsBuf[:c]) != "[700 8]" {
+		t.Error(fmt.Sprint(coordsBuf[:c]) + "!=[700 8]")
 	}
 	c, err = fReader.Read(coordsBuf)
-	if err!=nil || fmt.Sprint(coordsBuf[:c])!="[9 10.0001]"{
-		t.Error(fmt.Sprint(coordsBuf[:c])+"!=[9 10.0001]")
+	if err != nil || fmt.Sprint(coordsBuf[:c]) != "[9 10.0001]" {
+		t.Error(fmt.Sprint(coordsBuf[:c]) + "!=[9 10.0001]")
 	}
 	c, err = fReader.Read(coordsBuf)
-	if err!=nil || fmt.Sprint(coordsBuf[:c])!="[1 10]"{
-		t.Error(fmt.Sprint(coordsBuf[:c])+"!=[1 10]")
+	if err != nil || fmt.Sprint(coordsBuf[:c]) != "[1 10]" {
+		t.Error(fmt.Sprint(coordsBuf[:c]) + "!=[1 10]")
+	}
+}
+
+func TestFloatsParseByLine(t *testing.T) {
+	file, err := os.Open("floatlistlong.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	fReader := NewFloats(file, ',')
+	itemBuf := make([]float64, 3)
+	nextByte := make([]byte, 1)
+	for err, c, f := error(nil), 0, 0; err == nil; {
+		c, err = fReader.Read(itemBuf[f:])
+		f += c
+		if f < 3 {
+			continue
+		}
+		for err == nil {
+			if len(fReader.UnBuf) > 0 {
+				nextByte = fReader.UnBuf[0:1]
+				if nextByte[0] != ' ' || nextByte[0] != '\n' || nextByte[0] != '\t' || nextByte[0] != '\r' || nextByte[0] != '\f' {
+					break
+				}
+				fReader.UnBuf = fReader.UnBuf[1:]
+			} else {
+				_, err = fReader.Reader.Read(nextByte)
+				if nextByte[0] != ' ' || nextByte[0] != '\n' || nextByte[0] != '\t' || nextByte[0] != '\r' || nextByte[0] != '\f' {
+					break
+				}
+
+			}
+		}
+
+		f = 0
 	}
 }
 
@@ -219,7 +254,7 @@ func BenchmarkFloat(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		reader := strings.NewReader("1,2,3,4,5,6,7,8,9,0")
-		fReader := NewFloats(reader,',')
+		fReader := NewFloats(reader, ',')
 		b.StartTimer()
 		for err := error(nil); err == nil; {
 			_, err = fReader.Read(coordsBuf)
@@ -261,7 +296,7 @@ func BenchmarkFloatFile(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		fReader := NewFloats(file,',')
+		fReader := NewFloats(file, ',')
 		b.StartTimer()
 		for err := error(nil); err == nil; {
 			_, err = fReader.Read(coordsBuf)
@@ -276,11 +311,11 @@ func BenchmarkFloatMemoryFile(b *testing.B) {
 	b.StopTimer()
 	for i := 0; i < b.N; i++ {
 		dat, err := ioutil.ReadFile("floatlistlong.txt")
-		file:=bytes.NewBuffer(dat)
+		file := bytes.NewBuffer(dat)
 		if err != nil {
 			panic(err)
 		}
-		fReader := NewFloats(file,',')
+		fReader := NewFloats(file, ',')
 		b.StartTimer()
 		for err := error(nil); err == nil; {
 			_, err = fReader.Read(coordsBuf)
@@ -297,7 +332,7 @@ func BenchmarkFloatCounterFile(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		fReader := NewFloatsSize(file,',',1)
+		fReader := NewFloatsSize(file, ',', 1)
 		b.StartTimer()
 		c := 0
 		for err := error(nil); err == nil; {
@@ -341,7 +376,7 @@ func BenchmarkFloatFileWithWork(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		fReader := NewFloats(file,',')
+		fReader := NewFloats(file, ',')
 		b.StartTimer()
 		for err := error(nil); err == nil; {
 			c, err = fReader.Read(coord[:])
