@@ -4,13 +4,14 @@ import "io"
 import "math"
 import "bytes"
 import "errors"
+
 //import "fmt"
 
 type progress uint8
 
 const (
 	begin progress = iota
-	start
+	inMultiDelim
 	inWhole
 	beginFraction
 	inFraction
@@ -152,7 +153,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		switch b[i] {
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			switch l.stage {
-			case begin,start:
+			case begin, inMultiDelim:
 				l.stage = inWhole
 				l.whole = uint64(b[i]) - 48
 			case inWhole:
@@ -187,7 +188,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '.':
 			switch l.stage {
-			case begin,start, inWhole:
+			case begin, inMultiDelim, inWhole:
 				l.stage = beginFraction
 			default:
 				l.stage = nan
@@ -204,14 +205,14 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			switch l.stage {
 			case begin:
 				l.stage = nan
-			case start:
+			case inMultiDelim:
 				l.stage = begin
 			case exponentSign:
 				l.stage = nan
 				fallthrough
 			default:
 				setVal()
-				l.stage=begin
+				l.stage = begin
 				if c >= len(fs) {
 					l.UnBuf = b[i+1 : n]
 					return c, nil
@@ -224,7 +225,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 				fallthrough
 			case inWhole, inFraction, inExponent, beginFraction:
 				setVal()
-				l.stage=start
+				l.stage = inMultiDelim
 				if c >= len(fs) {
 					l.UnBuf = b[i+1 : n]
 					return c, nil
@@ -232,7 +233,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '-':
 			switch l.stage {
-			case begin,start:
+			case begin, inMultiDelim:
 				l.neg = true
 				l.stage = inWhole
 			case exponentSign:
@@ -243,7 +244,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '+':
 			switch l.stage {
-			case begin,start:
+			case begin, inMultiDelim:
 				l.stage = inWhole
 			case exponentSign:
 				l.stage = inExponent
@@ -255,9 +256,9 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			l.stage = nan
 		}
 	}
-	if err != nil && l.stage != begin && l.stage != start{
+	if err != nil && l.stage != begin && l.stage != inMultiDelim {
 		setVal()
-		l.stage=begin
+		l.stage = begin
 	}
 	return c, err
 }

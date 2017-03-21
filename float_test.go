@@ -132,28 +132,27 @@ func ReadFloats(r io.Reader) ([]float64, error) {
 	return result, scanner.Err()
 }
 
-
 func TestFloatsParse(t *testing.T) {
 	reader := strings.NewReader(" 1 2 -3 \t4 ,50e-1 +6 700., 8 9 \n\f 10.0001\t000001,1e01,\"eof\"")
 	//var bufLen int64 = 1
 	var i int
-	fReader := NewFloats(reader,',')
+	fReader := NewFloats(reader, ',')
 	coordsBuf := make([]float64, 1)
 	for err, c := error(nil), 0; err == nil; {
 		c, err = fReader.Read(coordsBuf)
 		if c == 0 {
 			continue
 		}
-		if fmt.Sprint(err, coordsBuf[:])!=[]string{"<nil> [1]","<nil> [2]","<nil> [-3]","<nil> [4]","<nil> [5]","<nil> [6]","<nil> [700]","<nil> [8]","<nil> [9]","<nil> [10.0001]","<nil> [1]","<nil> [10]","EOF [NaN]"}[i]{
-			t.Error(i,fmt.Sprint(err, coordsBuf[:]))
+		if fmt.Sprint(err, coordsBuf[:]) != []string{"<nil> [1]", "<nil> [2]", "<nil> [-3]", "<nil> [4]", "<nil> [5]", "<nil> [6]", "<nil> [700]", "<nil> [8]", "<nil> [9]", "<nil> [10.0001]", "<nil> [1]", "<nil> [10]", "EOF [NaN]"}[i] {
+			t.Error(i, fmt.Sprint(err, coordsBuf[:]))
 		}
 		i++
 		if fReader.AnyNaN {
 			switch r := fReader.Reader.(type) {
 			case io.Seeker:
 				pos, _ := r.Seek(0, os.SEEK_CUR) //pos,_:=r.Seek(0,io.SeekCurrent)
-				if pos!=59{
-					t.Error(fmt.Sprintf("pos not 59 %d",pos))
+				if pos != 59 {
+					t.Error(fmt.Sprintf("pos not 59 %d", pos))
 				}
 			default:
 				fmt.Println("NaN")
@@ -162,7 +161,6 @@ func TestFloatsParse(t *testing.T) {
 		}
 	}
 }
-
 
 func TestFloatsParseNaN(t *testing.T) {
 	reader := strings.NewReader(" 1 2 -3 \t4 50e-1 +6 700. 8 9, \n\f 10.0001\t000001,1e01")
@@ -491,4 +489,3 @@ PASS
 ok  	_/home/simon/Dropbox/github/working/listreader	113.352s
 Sat 18 Feb 20:18:23 GMT 2017
 */
-
