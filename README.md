@@ -6,7 +6,8 @@ Status: (Should work, much testing, but not extensively used on variety of data 
 
 100MB/s for me, YRMV.
 
-(update: go1.8 much faster, +100% (std.lib. 10% faster) so now 5 to 15 times faster.)
+(update: go1.8 much faster, +100% (std.lib. +10% faster) so now 5 to 15 times faster.)
+(update: go1.9b1 much faster, +30% (std.lib. also much faster +40%) so now 4 to 12 times faster.)
 
 not actually optimised, just uses an inline 'flat' implementation, so should be able to be made faster.
 
@@ -31,10 +32,10 @@ func main(){
 	itemBuf := make([]float64, 3)
 	for err, c,f := error(nil),0, 0; err == nil; {
 		c, err = reader.Read(itemBuf[f:])
-     	f+=c
-     	if f<3 {continue}
-     	fmt.Println(itemBuf)
-     	f=0
+	     	f+=c
+     		if f<3 {continue}
+     		fmt.Println(itemBuf)
+     		f=0
  	}
 }
 ```
