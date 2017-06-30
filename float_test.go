@@ -460,4 +460,21 @@ PASS
 ok  	_/home/simon/Dropbox/github/working/listreader	125.113s
 Wed 22 Mar 00:06:22 GMT 2017
 */
+/*  Hal3 Sat 24 Jun 21:45:39 BST 2017  go version go1.9beta1 linux/amd64
+
+goos: linux
+goarch: amd64
+BenchmarkFloat-2                      	 5000000	       360 ns/op
+BenchmarkFloatCompare-2               	  500000	      2408 ns/op
+BenchmarkFloatCompare2-2              	  300000	      4386 ns/op
+BenchmarkFloatFile-2                  	     200	   9539447 ns/op
+BenchmarkFloatMemoryFile-2            	     200	   8152662 ns/op
+BenchmarkFloatCounterFile-2           	       2	 782847054 ns/op
+BenchmarkFloatFileCompare-2           	      30	  42439975 ns/op
+BenchmarkFloatFileWithWork-2          	     100	  18532332 ns/op
+BenchmarkFloatFileCompareWithWork-2   	      30	  51130660 ns/op
+PASS
+ok  	_/home/simon/Dropbox/github/working/listreader	23.060s
+Sat 24 Jun 21:46:03 BST 2017
+*/
 

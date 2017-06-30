@@ -72,7 +72,7 @@ func (l *Floats) ReadAll() (fs []float64, err error) {
 
 // ReadCounter, like Read, reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, an error occurs or the buffer is full.
 // But unlike Read it also increments an int, by the number of reads it has made.
-// It can be used to find the byte position of a parse failure, this is done by using on a Float with a unit buffer size. This is only intended for testing data sets and/or for retrospective location, due to its lack of buffering giving poor performance.
+// It can be used to find the byte position of a parse failure, this is done by using on a Float with a buffer size of one. This is only intended for testing data sets and/or for retrospective location, due to its lack of buffering giving poor performance.
 func (l *Floats) ReadCounter(fs []float64, pos *int) (c int, err error) {
 	for c == 0 && err == nil {
 		c, err = l.Read(fs)
@@ -82,6 +82,7 @@ func (l *Floats) ReadCounter(fs []float64, pos *int) (c int, err error) {
 }
 
 // Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, the buffer is full or an error occurs.
+// internal buffering means the same underlying io.Reader will generally be read past the location of the returned values, unless the internal buffer length is set to 1.
 func (l *Floats) Read(fs []float64) (c int, err error) {
 	var power10 func(uint64) float64
 	power10 = func(n uint64) float64 {
