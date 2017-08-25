@@ -7,6 +7,8 @@ import "errors"
 
 //import "fmt"
 
+//  TODO could we have a scaled int, so fixed precision rather than floating, version of this?
+
 type progress uint8
 
 const (
