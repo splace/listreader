@@ -11,9 +11,9 @@ common 'single' delimiters might be; ',' ' ' '\t' '\n' '\x1F' '\x00'
 
 the delimiters and digits interpretations are integrated, and unconsumed bytes are internally buffered, for speed.
 
-results are returned in a fixed length buffer with a count, like a Reader, so files larger than memory can be processed.
+results are returned in the provided fixed length buffer with a count, like a Reader, so files larger than memory can be processed.
 
-an exposed flag indicates if ANY items have failed to parse.
+an exposed flag indicates if ANY items failed to parse and in the buffer are NAN values.
 
 the unconsumed buffer is exposed.
 

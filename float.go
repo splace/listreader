@@ -73,12 +73,12 @@ func (l *Floats) ReadAll() (fs []float64, err error) {
 }
 
 // ReadCounter, like Read, reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, an error occurs or the buffer is full.
-// But unlike Read it also increments an int, by the number of reads it has made.
+// But unlike Read it also returns the number of underlying reads it has made.
 // It can be used to find the byte position of a parse failure, this is done by using on a Float with a buffer size of one. This is only intended for testing data sets and/or for retrospective location, due to its lack of buffering giving poor performance.
-func (l *Floats) ReadCounter(fs []float64, pos *int) (c int, err error) {
+func (l *Floats) ReadCounter(fs []float64) (c, pos int, err error) {
 	for c == 0 && err == nil {
 		c, err = l.Read(fs)
-		*pos = *pos + 1
+		pos++
 	}
 	return
 }

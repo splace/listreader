@@ -332,9 +332,8 @@ func BenchmarkFloatCounterFile(b *testing.B) {
 		}
 		fReader := NewFloatsSize(file, ',', 1)
 		b.StartTimer()
-		c := 0
 		for err := error(nil); err == nil; {
-			_, err = fReader.ReadCounter(coordsBuf, &c)
+			_, _, err = fReader.ReadCounter(coordsBuf)
 		}
 		b.StopTimer()
 		file.Close()
