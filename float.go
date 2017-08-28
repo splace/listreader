@@ -5,8 +5,6 @@ import "math"
 import "bytes"
 import "errors"
 
-//import "fmt"
-
 //  TODO could we have a scaled int, so fixed precision rather than floating, version of this?
 
 type progress uint8
@@ -32,16 +30,15 @@ type Floats struct {
 	neg            bool   // negative number
 	whole          uint64 // whole number section, read so far
 	fraction       uint64 // fraction section read so far
-	fractionDigits uint8  // count of fractional section digits, used to turn int into required real number by power of ten division
+	fractionDigits uint8  // count of fractional section digits, used to turn interger, into required real, by power of ten division
 	exponent       uint64 // exponent section so far read
 	negExponent    bool
 	AnyNaN         bool   // set if any parsing issue
-	buf            []byte // reusable buffer for reader, same backing array as Unbuf.
-	UnBuf          []byte // unconsumed bytes remaining in internal buffer after last read
-	LastDelimiter  byte   // delimiter after last item
+	buf            []byte // internal buffer.
+	UnBuf          []byte // slice of buf of the unconsumed bytes after last Read.
 }
 
-// NewFloats returns a Floats reading items from r separated by d, with the default buffer size.
+// NewFloats returns a Floats reading items from r separated by d, with the bytes package default buffer size.
 func NewFloats(r io.Reader, d byte) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bytes.MinRead)}
 }
@@ -51,9 +48,6 @@ func NewFloatsSize(r io.Reader, d byte, bSize int) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bSize)}
 }
 
-type ErrAnyNaN struct {
-	error
-}
 
 // ReadAll returns all the floating-point decodings available from Floats, in a slice.
 // Any non-parsable items encountered are returned, in the slice, as NaN values, and cause an ErrAnyNaN error to be returned on completion.
@@ -67,14 +61,16 @@ func (l *Floats) ReadAll() (fs []float64, err error) {
 		err = nil
 	}
 	if err == nil && l.AnyNaN {
-		err = ErrAnyNaN{errors.New("Not everything was interpretable as numbers.(returned as NaN)")}
+		err = ErrAnyNaN
 	}
 	return
 }
 
+var ErrAnyNaN = errors.New("Not everything was interpretable as numbers.(returned as NaN)")
+
 // ReadCounter, like Read, reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, an error occurs or the buffer is full.
-// But unlike Read it also returns the number of underlying reads it has made.
-// It can be used to find the byte position of a parse failure, this is done by using on a Float with a buffer size of one. This is only intended for testing data sets and/or for retrospective location, due to its lack of buffering giving poor performance.
+// But unlike Read it also returns the number of underlying bytes read.
+// It can be used to find the byte position of a parse failure, this is done by using on a Float with a buffer size of one. This is only intended for testing data sets and/or for retrospective location, due to its lack of buffering giving it poor performance.
 func (l *Floats) ReadCounter(fs []float64) (c, pos int, err error) {
 	for c == 0 && err == nil {
 		c, err = l.Read(fs)
@@ -84,7 +80,7 @@ func (l *Floats) ReadCounter(fs []float64) (c, pos int, err error) {
 }
 
 // Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, the buffer is full or an error occurs.
-// internal buffering means the same underlying io.Reader will generally be read past the location of the returned values, unless the internal buffer length is set to 1.
+// internal buffering means the underlying io.Reader will in general be read past the location of the returned values. (unless the internal buffer length is set to 1.)
 func (l *Floats) Read(fs []float64) (c int, err error) {
 	var power10 func(uint64) float64
 	power10 = func(n uint64) float64 {
@@ -265,3 +261,63 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	}
 	return c, err
 }
+
+// DelimitedReaders end after they encounter a particular delimiter byte.
+// they do some buffer copying for each delimiter, don't make the buffer of the underlying Reader very much bigger than inter-delimited range. 
+//type DelimitedReader struct{
+//	r io.Reader
+//	delimiter byte
+//	unbuf []byte // any unconsumed bytes left after a partial read.
+//	end bool
+//} 
+//
+//// Reader complient Read method. 
+//func (d *DelimitedReader) Read(p []byte) (n int, err error){
+//	if len(d.unbuf)==0{
+//		n,err=d.r.Read(p)
+//		d.end= err==io.EOF
+//	}else{
+//		copy(p,d.unbuf)
+//		n=len(d.unbuf)
+//		d.unbuf=p[:0]
+//	}
+//	for i,b:=range(p[:n]){
+//		if b==d.delimiter{
+//			d.unbuf=p[i+1:n]
+//			return i, io.EOF
+//		}
+//	}
+//	return n,err
+//}
+//
+//// More returns a pointer to this DelimiterReader, but only if the underlying Reader hasn't reached its end.
+//func (d *DelimitedReader) More() *DelimitedReader{
+//	if d.end {return nil}
+//	return d
+//}
+
+// SectiorReaders are Readers up until a delimiter, 
+type SectionReader struct{
+	r io.Reader
+	delimiter byte
+	End bool
+} 
+
+// Reader complient Read method. 
+func (d *SectionReader) Read(p []byte) (n int, err error){
+	if d.End==true {return 0,io.EOF}
+	for i:=range(p){
+		n,err=d.r.Read(p[i:i+1])
+		if n==1 && p[i]==d.delimiter{
+			d.End=true
+			return i-1, io.EOF
+		}
+		if err!=nil{break}
+	}
+	if err==io.EOF{err=EOA}
+	return n,err
+}
+
+var EOA = errors.New("End Of All")
+
+

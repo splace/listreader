@@ -166,7 +166,7 @@ func TestFloatsParseNaN(t *testing.T) {
 	reader := strings.NewReader(" 1 2 -3 \t4 50e-1 +6 700. 8 9, \n\f 10.0001\t000001,1e01")
 	fReader := NewFloats(reader, '\n')
 	nums, err := fReader.ReadAll()
-	if _, ok := err.(ErrAnyNaN); !ok {
+	if err!=ErrAnyNaN {
 		t.Error("no NaN found.")
 	}
 	//	switch err.(type) {
@@ -213,39 +213,66 @@ func TestFloatsParse2(t *testing.T) {
 }
 
 func TestFloatsParseByLine(t *testing.T) {
-	file, err := os.Open("floatlistlong.txt")
+	file, err := os.Open("floatlistshort.txt")
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
-	fReader := NewFloats(file, ',')
-	itemBuf := make([]float64, 3)
-	nextByte := make([]byte, 1)
-	for err, c, f := error(nil), 0, 0; err == nil; {
-		c, err = fReader.Read(itemBuf[f:])
-		f += c
-		if f < 3 {
+	lineReader := &SectionReader{r:file, delimiter:'\n'}
+	itemBuf := make([]float64, 100)
+	for r,c,i:=1,0,0;r<100;r,c,i=r+1,0,0{
+		floatReader := NewFloats(lineReader, ',')
+		for err==nil{
+			i, err = floatReader.Read(itemBuf[c:])
+			c += i
+		}
+		if c>0 {fmt.Println(r,itemBuf[:c])}
+		switch err{
+		case EOA:
+			break
+		case io.EOF:
+			err=nil
+			lineReader.End=false
 			continue
 		}
-		for err == nil {
-			if len(fReader.UnBuf) > 0 {
-				nextByte = fReader.UnBuf[0:1]
-				if nextByte[0] != ' ' || nextByte[0] != '\n' || nextByte[0] != '\t' || nextByte[0] != '\r' || nextByte[0] != '\f' {
-					break
-				}
-				fReader.UnBuf = fReader.UnBuf[1:]
-			} else {
-				_, err = fReader.Reader.Read(nextByte)
-				if nextByte[0] != ' ' || nextByte[0] != '\n' || nextByte[0] != '\t' || nextByte[0] != '\r' || nextByte[0] != '\f' {
-					break
-				}
-
-			}
-		}
-
-		f = 0
 	}
 }
+
+
+//func TestFloatsParseByLine(t *testing.T) {
+//	file, err := os.Open("floatlistlong.txt")
+//	if err != nil {
+//		panic(err)
+//	}
+//	defer file.Close()
+//	fReader := NewFloats(file, ',')
+//	itemBuf := make([]float64, 3)
+//	nextByte := make([]byte, 1)
+//	for err, c, f := error(nil), 0, 0; err == nil; {
+//		c, err = fReader.Read(itemBuf[f:])
+//		f += c
+//		if f < 3 {
+//			continue
+//		}
+//		for err == nil {
+//			if len(fReader.UnBuf) > 0 {
+//				nextByte = fReader.UnBuf[0:1]
+//				if nextByte[0] != ' ' || nextByte[0] != '\n' || nextByte[0] != '\t' || nextByte[0] != '\r' || nextByte[0] != '\f' {
+//					break
+//				}
+//				fReader.UnBuf = fReader.UnBuf[1:]
+//			} else {
+//				_, err = fReader.Reader.Read(nextByte)
+//				if nextByte[0] != ' ' || nextByte[0] != '\n' || nextByte[0] != '\t' || nextByte[0] != '\r' || nextByte[0] != '\f' {
+//					break
+//				}
+//
+//			}
+//		}
+//
+//		f = 0
+//	}
+//}
 
 func BenchmarkFloat(b *testing.B) {
 	coordsBuf := make([]float64, 20)
