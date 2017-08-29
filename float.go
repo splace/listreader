@@ -4,6 +4,7 @@ import "io"
 import "math"
 import "bytes"
 import "errors"
+import "strconv"
 
 //  TODO could we have a scaled int, so fixed precision rather than floating, version of this?
 
@@ -17,7 +18,12 @@ const (
 	inFraction
 	exponentSign
 	inExponent
-	nan
+	errorDot
+	errorExp
+	errorNothing
+	errorSign
+	errorNondigit
+	errorTooLarge
 )
 
 const maxUint = math.MaxUint64 / 10
@@ -33,7 +39,6 @@ type Floats struct {
 	fractionDigits uint8  // count of fractional section digits, used to turn interger, into required real, by power of ten division
 	exponent       uint64 // exponent section so far read
 	negExponent    bool
-	AnyNaN         bool   // set if any parsing issue
 	buf            []byte // internal buffer.
 	UnBuf          []byte // slice of buf of the unconsumed bytes after last Read.
 }
@@ -43,33 +48,58 @@ func NewFloats(r io.Reader, d byte) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bytes.MinRead)}
 }
 
-// NewFloatsSize returns a Floats reading items from r separated by d, with an internal buffer size of bSize.
+// NewFloatsSize returns a Floats reading items from r separated by d, with a set internal buffer size.
 func NewFloatsSize(r io.Reader, d byte, bSize int) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bSize)}
 }
 
 
-// ReadAll returns all the floating-point decodings available from Floats, in a slice.
-// Any non-parsable items encountered are returned, in the slice, as NaN values, and cause an ErrAnyNaN error to be returned on completion.
+// ReadAll returns all the floating-point decodings available from Floats, in a slice, and any parse Error.
 func (l *Floats) ReadAll() (fs []float64, err error) {
 	fbuf := make([]float64, 100)
-	for c := 0; err == nil; {
-		c, err = l.Read(fbuf)
+	for {
+		c, eerr := l.Read(fbuf)
 		fs = append(fs, fbuf[:c]...)
-	}
-	if err == io.EOF {
-		err = nil
-	}
-	if err == nil && l.AnyNaN {
-		err = ErrAnyNaN
+		if eerr!=nil{
+			 // if its a parse error only keep the first and keep going
+			if _,is:=eerr.(parseError);is{
+				if err==nil{err=eerr}
+				continue
+			}
+			if eerr!=io.EOF{err=eerr}
+			return
+			}
 	}
 	return
 }
 
-var ErrAnyNaN = errors.New("Not everything was interpretable as numbers.(returned as NaN)")
+type parseError progress
 
-// Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, the buffer is full or an error occurs.
-// internal buffering means the underlying io.Reader will in general be read past the location of the returned values. (unless the internal buffer length is set to 1.)
+func (pe parseError)Error()string{
+	switch progress(pe){
+	case errorDot:
+		return "Extra Dot"
+	case errorExp:
+		return "Exponent Failure"
+	case errorNothing:
+		return "Empty Item"
+	case errorSign:
+		return "Extra Sign"
+	case errorNondigit:
+		return "Non Numeric/Whitespace/Delimiter encountered"
+	case exponentSign:
+		return "No Exponent found"
+	case errorTooLarge:
+		return "Value too large"
+	default:
+		return "Unknown:#"+strconv.Itoa(int(pe))
+	} 		
+}
+
+// Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, the buffer is full or an error on the Reader occures.
+// It doesn't stop for parsing errors, but returns, the first encountered as type parseError{}
+// Any non-parsable items encountered are returned, in the slice, as NaN values.
+// Internal buffering means the underlying io.Reader will in general be read past the location of the returned values. (unless the internal buffer length is set to 1.)
 func (l *Floats) Read(fs []float64) (c int, err error) {
 	var power10 func(uint64) float64
 	power10 = func(n uint64) float64 {
@@ -102,8 +132,8 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	var setVal func()
 	setVal = func() {
 		switch l.stage {
-		case nan, exponentSign:
-			l.AnyNaN = true
+		case errorDot,errorExp, errorNothing,errorSign,errorNondigit,exponentSign:
+			if err==nil{err=parseError(l.stage)}
 			fs[c] = math.NaN()
 		case inWhole, beginFraction:
 			fs[c] = float64(l.whole)
@@ -129,12 +159,17 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	}
 	var n int
 	var b []byte
-	if len(l.UnBuf) > 0 { // use any unprocessed first, but skip first byte, its just saved separator
+	if len(l.UnBuf) > 0 { // use any unprocessed first
 		n = len(l.UnBuf)
 		b = l.UnBuf
 		l.UnBuf = l.UnBuf[0:0]
 	} else {
-		n, err = l.Reader.Read(l.buf)
+		// dont override parse error 
+		if err==nil{
+			n, err = l.Reader.Read(l.buf)
+		}else{
+			n, _ = l.Reader.Read(l.buf) 
+		}
 		b = l.buf
 	}
 	for i := 0; i < n; i++ {
@@ -146,7 +181,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 				l.whole = uint64(b[i]) - 48
 			case inWhole:
 				if l.whole > maxUint {
-					l.stage = nan
+					l.stage = errorTooLarge
 				} else {
 					l.whole *= 10
 					l.whole += uint64(b[i]) - 48
@@ -157,7 +192,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 				l.fractionDigits = 1
 			case inFraction:
 				if l.fraction > maxUint {
-					l.stage = nan
+					l.stage = errorTooLarge
 				} else {
 					l.fraction *= 10
 					l.fraction += uint64(b[i]) - 48
@@ -168,7 +203,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 				fallthrough
 			case inExponent:
 				if l.exponent > maxUint {
-					l.stage = nan
+					l.stage = errorTooLarge
 				} else {
 					l.exponent *= 10
 					l.exponent += uint64(b[i]) - 48
@@ -178,25 +213,25 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			switch l.stage {
 			case begin, inMultiDelim, inWhole:
 				l.stage = beginFraction
-			default:
-				l.stage = nan
+			case beginFraction,inFraction,exponentSign,inExponent:
+				l.stage = errorDot
 			}
 		case 'e', 'E':
 			switch l.stage {
 			case inWhole, inFraction:
 				l.stage = exponentSign
-			default:
-				l.stage = nan
+			case begin,inMultiDelim,beginFraction,exponentSign,inExponent:
+				l.stage = errorExp
 			}
 		case l.Delimiter: // single delimiter
 			//fmt.Println(l)
 			switch l.stage {
 			case begin:
-				l.stage = nan
+				l.stage = errorNothing
 			case inMultiDelim:
 				l.stage = begin
 			case exponentSign:
-				l.stage = nan
+				l.stage = errorExp
 				fallthrough
 			default:
 				setVal()
@@ -209,7 +244,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		case ' ', '\n', '\r', '\t', '\f': // delimiters but multiple occurrences only count as one.
 			switch l.stage {
 			case exponentSign:
-				l.stage = nan
+				l.stage = errorExp
 				fallthrough
 			case inWhole, inFraction, inExponent, beginFraction:
 				setVal()
@@ -218,6 +253,8 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 					l.UnBuf = b[i+1 : n]
 					return c, nil
 				}
+			default:
+				l.stage = inMultiDelim
 			}
 		case '-':
 			switch l.stage {
@@ -227,8 +264,8 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			case exponentSign:
 				l.negExponent = true
 				l.stage = inExponent
-			default:
-				l.stage = nan
+			case inWhole, inFraction,beginFraction,inExponent:
+				l.stage = errorSign
 			}
 		case '+':
 			switch l.stage {
@@ -236,15 +273,16 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 				l.stage = inWhole
 			case exponentSign:
 				l.stage = inExponent
-			default:
-				l.stage = nan
+			case inWhole, inFraction, beginFraction,inExponent:
+				l.stage = errorSign
 			}
 
 		default:
-			l.stage = nan
+			l.stage = errorNondigit
 		}
 	}
-	if err != nil && l.stage != begin && l.stage != inMultiDelim {
+	// make sure we capture last item
+	if err == io.EOF && l.stage != begin && l.stage != inMultiDelim {
 		setVal()
 		l.stage = begin
 	}
@@ -254,7 +292,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 
 // SequenceReaders Read from the embedded Reader until a delimiter, at which point they return with io.EOF.
 // to enable Reading on to the next delimiter call Next()
-// when reached the io.EOF of the embedded Reader they report EOA (End of All.)
+// when reaching the io.EOF of the embedded Reader they report EOA (End of All.)
 type SequenceReader struct{
 	io.Reader
 	delimiter byte

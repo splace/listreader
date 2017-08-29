@@ -147,7 +147,7 @@ func TestFloatsParse(t *testing.T) {
 			t.Error(i, fmt.Sprint(err, coordsBuf[:]))
 		}
 		i++
-		if fReader.AnyNaN {
+		if err!=nil {
 			switch r := fReader.Reader.(type) {
 			case io.Seeker:
 				pos, _ := r.Seek(0, os.SEEK_CUR) //pos,_:=r.Seek(0,io.SeekCurrent)
@@ -163,18 +163,45 @@ func TestFloatsParse(t *testing.T) {
 }
 
 func TestFloatsParseNaN(t *testing.T) {
-	reader := strings.NewReader(" 1 2 -3 \t4 50e-1 +6 700. 8 9, \n\f 10.0001\t000001,1e01")
-	fReader := NewFloats(reader, '\n')
+	reader := strings.NewReader("1 2 -3 \t4 50e-1 +6 700. 8 9, \n\f 10.0001\t000001,1e01")
+	fReader := NewFloats(reader, ' ')
 	nums, err := fReader.ReadAll()
-	if err!=ErrAnyNaN {
-		t.Error("no NaN found.")
+	if _,is:=err.(parseError);!is {
+		t.Error("no parse Error found.")
 	}
-	//	switch err.(type) {
-	//	case ErrAnyNaN:
-	//		fmt.Println("some NaN")
-	//	}
+	switch err.(type) {
+	case nil:
+	case parseError:
+	default:
+		t.Error("Not Parse error:"+err.Error())
+	}
+	if pe,is:=err.(parseError);is {
+		if pe.Error()!="Non Numeric/Whitespace/Delimiter encountered"{t.Error("Not Non digit error:"+pe.Error())}
+	}
+
 	if fmt.Sprint(nums) != "[1 2 -3 4 5 6 700 8 NaN 10.0001 NaN]" {
 		t.Error(fmt.Sprint(nums) + "!=[1 2 -3 4 5 6 700 8 NaN 10.0001 NaN]")
+	}
+	
+	
+	reader = strings.NewReader("1 2 -3 \t4 50e-1 +6 700. 8 9, \n\f 10.0001\t000001,1e01")
+	fReader = NewFloats(reader, ',')
+	nums, err = fReader.ReadAll()
+	if _,is:=err.(parseError);is {
+		t.Error("parse Error found.")
+	}
+	switch err.(type) {
+	case nil:
+	case parseError:
+	default:
+		t.Error("Not Parse error:"+err.Error())
+	}
+	if pe,is:=err.(parseError);is {
+		if pe.Error()!="Non Numeric/Whitespace/Delimiter encountered"{t.Error("Not Non digit error:"+pe.Error())}
+	}
+
+	if fmt.Sprint(nums) != "[1 2 -3 4 5 6 700 8 9 10.0001 1 10]" {
+		t.Error(fmt.Sprint(nums) + "!=[1 2 -3 4 5 6 700 8 9 10.0001 1 10]")
 	}
 }
 
@@ -212,7 +239,7 @@ func TestFloatsParse2(t *testing.T) {
 	}
 }
 
-func TestFloatsParseByLine(t *testing.T) {
+func TestFloatsParseInLineSequence(t *testing.T) {
 	file, err := os.Open("floatlistlong.txt")
 	if err != nil {
 		panic(err)
@@ -562,3 +589,6 @@ PASS
 ok  	_/home/simon/Dropbox/github/working/listreader	24.961s
 Mon 28 Aug 17:06:20 BST 2017
 */
+
+
+
