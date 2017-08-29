@@ -218,7 +218,7 @@ func TestFloatsParseByLine(t *testing.T) {
 		panic(err)
 	}
 	defer file.Close()
-	lineReader := &SequenceReader{r:file, delimiter:'\n'}
+	lineReader := &SequenceReader{Reader:file, delimiter:'\n'}
 	itemBuf := make([]float64, 4)  // the max floats per line, use append below if not sure, will get index panic if too many. 
 	var r int=1
 	for ;err==nil;r++{
@@ -255,7 +255,7 @@ func TestSequenceReader(t *testing.T) {
 -0.6629459857940673,3.9293100833892822,2.7228600978851318
 -0.5241180062294006,3.7434799671173096,2.6684000492095947`)
 	os.Mkdir("lines", 0755)
-	lineReader := &SequenceReader{r:source, delimiter:'\n'}
+	lineReader := &SequenceReader{Reader:source, delimiter:'\n'}
 	for r:=1;r<100;r++{
 		w, err := os.Create(fmt.Sprintf("lines/floatlistshort%v.txt",r))
 		if err != nil {
@@ -391,9 +391,9 @@ func BenchmarkFloatCounterFile(b *testing.B) {
 			panic(err)
 		}
 		b.StartTimer()
-		fReader := NewFloatsSize(file, ',', 1)
+		fReader := NewFloatsSize(CountingReader{Reader:file}, ',', 1)
 		for err := error(nil); err == nil; {
-			_, _, err = fReader.ReadCounter(coordsBuf)
+			_, err = fReader.Read(coordsBuf)
 		}
 		b.StopTimer()
 		file.Close()
@@ -500,7 +500,7 @@ func BenchmarkFloatZippedFileLineReader(b *testing.B) {
 			panic(err)
 		}
 		b.StartTimer()
-		lineReader := &SequenceReader{r:file, delimiter:'\n'}
+		lineReader := &SequenceReader{Reader:file, delimiter:'\n'}
 		itemBuf := make([]float64, 4) 
 		var r int=1
 		for ;err==nil;r++{
@@ -526,40 +526,24 @@ func BenchmarkFloatZippedFileLineReader(b *testing.B) {
 	}
 }
 
-
-/*  Hal3 Mon 28 Aug 16:54:26 BST 2017 go version go1.6.2 linux/amd64
+/*  Hal3 Tue 29 Aug 01:30:10 BST 2017 go version go1.6.2 linux/amd64
 PASS
-BenchmarkFloat-2                    	 3000000	       568 ns/op
-BenchmarkFloatCompare-2             	  300000	      5478 ns/op
-BenchmarkFloatCompare2-2            	  200000	      6907 ns/op
-BenchmarkFloatFile-2                	     100	  19622752 ns/op
-BenchmarkFloatMemoryFile-2          	     100	  18473398 ns/op
-BenchmarkFloatCounterFile-2         	       2	 717038044 ns/op
-BenchmarkFloatFileCompare-2         	      20	  62361596 ns/op
-BenchmarkFloatFileWithWork-2        	      50	  33180541 ns/op
-BenchmarkFloatFileCompareWithWork-2 	      20	  70186269 ns/op
-BenchmarkFloatZippedFileLineReader-2	      20	  92254100 ns/op
-ok  	_/home/simon/Dropbox/github/working/listreader	124.337s
-Mon 28 Aug 16:56:32 BST 2017
+BenchmarkFloat-2                    	 1000000	      1408 ns/op
+BenchmarkFloatCompare-2             	  300000	      6046 ns/op
+BenchmarkFloatCompare2-2            	  200000	      7345 ns/op
+BenchmarkFloatFile-2                	     100	  20003621 ns/op
+BenchmarkFloatMemoryFile-2          	     100	  18542290 ns/op
+BenchmarkFloatCounterFile-2         	       2	 747042539 ns/op
+BenchmarkFloatFileCompare-2         	      20	  62331769 ns/op
+BenchmarkFloatFileWithWork-2        	      50	  33405882 ns/op
+BenchmarkFloatFileCompareWithWork-2 	      20	  69692015 ns/op
+BenchmarkFloatZippedFileLineReader-2	      20	  92966125 ns/op
+ok  	_/home/simon/Dropbox/github/working/listreader	59.497s
+Tue 29 Aug 01:31:11 BST 2017
 */
-/*  Hal3 Mon 28 Aug 17:00:50 BST 2017  go version go1.9beta1 linux/amd64
 
-goos: linux
-goarch: amd64
-BenchmarkFloat-2                       	 5000000	       357 ns/op
-BenchmarkFloatCompare-2                	  500000	      2384 ns/op
-BenchmarkFloatCompare2-2               	  300000	      4442 ns/op
-BenchmarkFloatFile-2                   	     200	   9624828 ns/op
-BenchmarkFloatMemoryFile-2             	     200	   8199902 ns/op
-BenchmarkFloatCounterFile-2            	       2	 802376036 ns/op
-BenchmarkFloatFileCompare-2            	      30	  43077167 ns/op
-BenchmarkFloatFileWithWork-2           	     100	  18556954 ns/op
-BenchmarkFloatFileCompareWithWork-2    	      30	  50878749 ns/op
-BenchmarkFloatZippedFileLineReader-2   	      20	  78344646 ns/op
-PASS
-ok  	_/home/simon/Dropbox/github/working/listreader	24.846s
-Mon 28 Aug 17:01:20 BST 2017
-*/
+
+
 /*  Hal3 Mon 28 Aug 17:05:54 BST 2017  go version go1.9beta1 linux/amd64
 
 goos: linux
@@ -578,15 +562,3 @@ PASS
 ok  	_/home/simon/Dropbox/github/working/listreader	24.961s
 Mon 28 Aug 17:06:20 BST 2017
 */
-/*  Hal3 Tue 29 Aug 01:00:44 BST 2017 go version go1.6.2 linux/amd64
-Selection:-TestSequenceReader
-FAIL	_/home/simon/Dropbox/github/working/listreader [build failed]
-*/
-/*  Hal3 Tue 29 Aug 01:01:17 BST 2017 go version go1.6.2 linux/amd64
-Selection:-TestSequenceReader
-=== RUN   TestSequenceReader
---- PASS: TestSequenceReader (0.02s)
-PASS
-ok  	_/home/simon/Dropbox/github/working/listreader	0.031s
-*/
-

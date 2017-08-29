@@ -68,17 +68,6 @@ func (l *Floats) ReadAll() (fs []float64, err error) {
 
 var ErrAnyNaN = errors.New("Not everything was interpretable as numbers.(returned as NaN)")
 
-// ReadCounter, like Read, reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, an error occurs or the buffer is full.
-// But unlike Read it also returns the number of underlying bytes read.
-// It can be used to find the byte position of a parse failure, this is done by using on a Float with a buffer size of one. This is only intended for testing data sets and/or for retrospective location, due to its lack of buffering giving it poor performance.
-func (l *Floats) ReadCounter(fs []float64) (c, pos int, err error) {
-	for c == 0 && err == nil {
-		c, err = l.Read(fs)
-		pos++
-	}
-	return
-}
-
 // Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, the buffer is full or an error occurs.
 // internal buffering means the underlying io.Reader will in general be read past the location of the returned values. (unless the internal buffer length is set to 1.)
 func (l *Floats) Read(fs []float64) (c int, err error) {
@@ -267,19 +256,19 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 // to enable Reading on to the next delimiter call Next()
 // when reached the io.EOF of the embedded Reader they report EOA (End of All.)
 type SequenceReader struct{
-	r io.Reader
+	io.Reader
 	delimiter byte
 	SectionEnded bool
 } 
 
 // Reader compliant Read method. 
-func (d *SequenceReader) Read(p []byte) (n int, err error){
-	if d.SectionEnded {return 0,io.EOF}
+func (dr SequenceReader) Read(p []byte) (n int, err error){
+	if dr.SectionEnded {return 0,io.EOF}
 	var c int
 	for n=range(p){
-		c,err=d.r.Read(p[n:n+1])
-		if c==1 && p[n]==d.delimiter{
-			d.SectionEnded=true
+		c,err=dr.Reader.Read(p[n:n+1])
+		if c==1 && p[n]==dr.delimiter{
+			dr.SectionEnded=true
 			return n-1, io.EOF
 		}
 		if err!=nil{
@@ -292,8 +281,21 @@ func (d *SequenceReader) Read(p []byte) (n int, err error){
 	return
 }
 
-func (d *SequenceReader) Next(){
-	d.SectionEnded=false
+func (dr *SequenceReader) Next(){
+	dr.SectionEnded=false
 }
 var EOA = errors.New("No More Sections")
+
+// CountingReaders Read from the embedded Reader keeping a total of the number of bytes read.
+type CountingReader struct {
+	io.Reader
+	Total int64 
+}
+
+// Reader compliant Read method. 
+func (cr CountingReader) Read(p []byte) (n int, err error) {
+	n, err = cr.Reader.Read(p)
+	cr.Total += int64(n)
+	return
+}
 
