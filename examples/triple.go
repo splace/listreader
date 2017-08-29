@@ -1,23 +1,13 @@
 package main
 
-import "os"
+import "strings"
 import "fmt"
 import "github.com/splace/listreader"
 
 func main(){
-   	file, err := os.Open(os.Args[1])
-	defer file.Close()
- 	if err != nil {
-		panic(err)
-	}
-	reader := listreader.NewFloats(file,',')
-	itemBuf := make([]float64, 3)
-	for err, c,f := error(nil),0, 0; err == nil;{
-		c, err = reader.Read(itemBuf[f:])
-     	f+=c 
-     	if f<3 {continue}
-     	fmt.Println(itemBuf)
-      	f=0
-	}
+	source := strings.NewReader(`24.022636656429 55.557392812856 52.228635194467 -31.380903518556 -7.9503676820041 28.357857406239 33.33750296633`)
+	lr := listreader.NewFloats(source,' ')
+	values,_ := lr.ReadAll()
+   	fmt.Println(values)
 }
 
