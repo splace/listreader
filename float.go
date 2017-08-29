@@ -296,6 +296,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 type SequenceReader struct{
 	io.Reader
 	delimiter byte
+	Count int64
 	sectionEnded bool
 } 
 
@@ -320,6 +321,7 @@ func (dr SequenceReader) Read(p []byte) (n int, err error){
 }
 
 func (dr *SequenceReader) Next(){
+	dr.Count++
 	dr.sectionEnded=false
 }
 

@@ -283,8 +283,8 @@ func TestSequenceReader(t *testing.T) {
 -0.5241180062294006,3.7434799671173096,2.6684000492095947`)
 	os.Mkdir("lines", 0755)
 	lineReader := &SequenceReader{Reader:source, delimiter:'\n'}
-	for r:=1;r<100;r++{
-		w, err := os.Create(fmt.Sprintf("lines/floatlistshort%v.txt",r))
+	for lineReader.Count<100 {
+		w, err := os.Create(fmt.Sprintf("lines/floatlistshort%v.txt",lineReader.Count))
 		if err != nil {
 			panic(err)
 		}
