@@ -15,8 +15,9 @@ a ParseError does not stop processing, so more than one can occur per Read, the 
 
 any items triggering a ParseError are indicated in the returned Float array as the NaN value.
 
-the unconsumed buffer is exposed.
+the unconsumed buffer (UnBuf) is exposed.
 
+the delimiter (Delimiter) is exposed.
 
 */
 package listreader
