@@ -296,17 +296,17 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 type SequenceReader struct{
 	io.Reader
 	delimiter byte
-	SectionEnded bool
+	sectionEnded bool
 } 
 
 // Reader compliant Read method. 
 func (dr SequenceReader) Read(p []byte) (n int, err error){
-	if dr.SectionEnded {return 0,io.EOF}
+	if dr.sectionEnded {return 0,io.EOF}
 	var c int
 	for n=range(p){
 		c,err=dr.Reader.Read(p[n:n+1])
 		if c==1 && p[n]==dr.delimiter{
-			dr.SectionEnded=true
+			dr.sectionEnded=true
 			return n-1, io.EOF
 		}
 		if err!=nil{
@@ -320,8 +320,9 @@ func (dr SequenceReader) Read(p []byte) (n int, err error){
 }
 
 func (dr *SequenceReader) Next(){
-	dr.SectionEnded=false
+	dr.sectionEnded=false
 }
+
 var EOA = errors.New("No More Sections")
 
 // CountingReaders Read from the embedded Reader keeping a total of the number of bytes read.
