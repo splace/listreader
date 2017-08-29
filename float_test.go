@@ -166,16 +166,16 @@ func TestFloatsParseNaN(t *testing.T) {
 	reader := strings.NewReader("1 2 -3 \t4 50e-1 +6 700. 8 9, \n\f 10.0001\t000001,1e01")
 	fReader := NewFloats(reader, ' ')
 	nums, err := fReader.ReadAll()
-	if _,is:=err.(parseError);!is {
+	if _,is:=err.(ParseError);!is {
 		t.Error("no parse Error found.")
 	}
 	switch err.(type) {
 	case nil:
-	case parseError:
+	case ParseError:
 	default:
 		t.Error("Not Parse error:"+err.Error())
 	}
-	if pe,is:=err.(parseError);is {
+	if pe,is:=err.(ParseError);is {
 		if pe.Error()!="Non Numeric/Whitespace/Delimiter encountered"{t.Error("Not Non digit error:"+pe.Error())}
 	}
 
@@ -187,16 +187,16 @@ func TestFloatsParseNaN(t *testing.T) {
 	reader = strings.NewReader("1 2 -3 \t4 50e-1 +6 700. 8 9, \n\f 10.0001\t000001,1e01")
 	fReader = NewFloats(reader, ',')
 	nums, err = fReader.ReadAll()
-	if _,is:=err.(parseError);is {
+	if _,is:=err.(ParseError);is {
 		t.Error("parse Error found.")
 	}
 	switch err.(type) {
 	case nil:
-	case parseError:
+	case ParseError:
 	default:
 		t.Error("Not Parse error:"+err.Error())
 	}
-	if pe,is:=err.(parseError);is {
+	if pe,is:=err.(ParseError);is {
 		if pe.Error()!="Non Numeric/Whitespace/Delimiter encountered"{t.Error("Not Non digit error:"+pe.Error())}
 	}
 

@@ -36,7 +36,7 @@ type Floats struct {
 	neg            bool   // negative number
 	whole          uint64 // whole number section, read so far
 	fraction       uint64 // fraction section read so far
-	fractionDigits uint8  // count of fractional section digits, used to turn interger, into required real, by power of ten division
+	fractionDigits uint8  // count of fractional section digits, used to turn integer, into required real, by power of ten division
 	exponent       uint64 // exponent section so far read
 	negExponent    bool
 	buf            []byte // internal buffer.
@@ -62,7 +62,7 @@ func (l *Floats) ReadAll() (fs []float64, err error) {
 		fs = append(fs, fbuf[:c]...)
 		if eerr!=nil{
 			 // if its a parse error only keep the first and keep going
-			if _,is:=eerr.(parseError);is{
+			if _,is:=eerr.(ParseError);is{
 				if err==nil{err=eerr}
 				continue
 			}
@@ -73,9 +73,9 @@ func (l *Floats) ReadAll() (fs []float64, err error) {
 	return
 }
 
-type parseError progress
+type ParseError progress
 
-func (pe parseError)Error()string{
+func (pe ParseError)Error()string{
 	switch progress(pe){
 	case errorDot:
 		return "Extra Dot"
@@ -96,8 +96,8 @@ func (pe parseError)Error()string{
 	} 		
 }
 
-// Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, the buffer is full or an error on the Reader occures.
-// It doesn't stop for parsing errors, but returns, the first encountered as type parseError{}
+// Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, the buffer is full or an error on the Reader occurs.
+// It doesn't stop for parsing errors, but returns, the first encountered as type ParseError{}
 // Any non-parsable items encountered are returned, in the slice, as NaN values.
 // Internal buffering means the underlying io.Reader will in general be read past the location of the returned values. (unless the internal buffer length is set to 1.)
 func (l *Floats) Read(fs []float64) (c int, err error) {
@@ -133,7 +133,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	setVal = func() {
 		switch l.stage {
 		case errorDot,errorExp, errorNothing,errorSign,errorNondigit,exponentSign:
-			if err==nil{err=parseError(l.stage)}
+			if err==nil{err=ParseError(l.stage)}
 			fs[c] = math.NaN()
 		case inWhole, beginFraction:
 			fs[c] = float64(l.whole)
@@ -164,7 +164,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		b = l.UnBuf
 		l.UnBuf = l.UnBuf[0:0]
 	} else {
-		// dont override parse error 
+		// don’t override a parse error 
 		if err==nil{
 			n, err = l.Reader.Read(l.buf)
 		}else{
