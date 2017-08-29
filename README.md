@@ -2,12 +2,9 @@
 
 Status: (Should work, much testing, but not extensively used on variety of data sets, let me know if you find a problem.)
 
-3 to 10 times faster than naive std lib implementation.(using csv.reader or bufio.Scanner)
+4+ times faster than naive std lib implementation.(using csv.reader or bufio.Scanner)
 
 100MB/s for me, YRMV.
-
-(update: go1.8 much faster, +100% (std.lib. +10% faster) so now 5 to 15 times faster.)
-(update: go1.9b1 much faster, +30% (std.lib. also much faster +40%) so now 4 to 12 times faster.)
 
 not actually optimised, just uses an inline 'flat' implementation, so should be able to be made faster.
 

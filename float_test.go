@@ -213,31 +213,64 @@ func TestFloatsParse2(t *testing.T) {
 }
 
 func TestFloatsParseByLine(t *testing.T) {
-	file, err := os.Open("floatlistshort.txt")
+	file, err := os.Open("floatlistlong.txt")
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
-	lineReader := &SectionReader{r:file, delimiter:'\n'}
-	itemBuf := make([]float64, 100)
-	for r,c,i:=1,0,0;r<100;r,c,i=r+1,0,0{
+	lineReader := &SequenceReader{r:file, delimiter:'\n'}
+	itemBuf := make([]float64, 4)  // the max floats per line, use append below if not sure, will get index panic if too many. 
+	var r int=1
+	for ;err==nil;r++{
 		floatReader := NewFloats(lineReader, ',')
-		for err==nil{
+		var c int = 0 
+		for i:=0;err==nil && c<len(itemBuf);{
 			i, err = floatReader.Read(itemBuf[c:])
 			c += i
 		}
-		if c>0 {fmt.Println(r,itemBuf[:c])}
 		switch err{
 		case EOA:
-			break
+			break  // test file has a newline at the end, so last section is empty, ie c==0 when EOA
 		case io.EOF:
+			if c!=3	{t.Errorf("Column count not 3 (%v)", c)}
+			lineReader.Next()
 			err=nil
-			lineReader.End=false
 			continue
+		case nil:
+			t.Errorf("More data available than fixed limit")
+			break
 		}
 	}
+	if r!=16912	{t.Errorf("Row count not 16912 (%v)", r)}
+
 }
 
+func TestSequenceReader(t *testing.T) {
+	source := strings.NewReader(`-0.5639740228652954,3.7998700141906738,2.7228600978851318
+-0.5956140160560607,3.8421299457550049,2.7341499328613281
+-0.606091022491455,3.8560400009155273,2.7367799282073975
+-0.6124340295791626,3.8643798828125,2.7373800277709961
+-0.6186929941177368,3.8725299835205078,2.7368900775909424
+-0.6286190152168273,3.8853299617767334,2.7345600128173828
+-0.6629459857940673,3.9293100833892822,2.7228600978851318
+-0.5241180062294006,3.7434799671173096,2.6684000492095947`)
+	os.Mkdir("lines", 0755)
+	lineReader := &SequenceReader{r:source, delimiter:'\n'}
+	for r:=1;r<100;r++{
+		w, err := os.Create(fmt.Sprintf("lines/floatlistshort%v.txt",r))
+		if err != nil {
+			panic(err)
+		}
+		_,err =io.Copy(w,lineReader)
+		w.Close()
+		if err == EOA {
+			break
+		}else if err!=nil {
+			panic(err)
+		}
+		lineReader.Next()
+	}
+}
 
 //func TestFloatsParseByLine(t *testing.T) {
 //	file, err := os.Open("floatlistlong.txt")
@@ -279,8 +312,8 @@ func BenchmarkFloat(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
 		reader := strings.NewReader("1,2,3,4,5,6,7,8,9,0")
-		fReader := NewFloats(reader, ',')
 		b.StartTimer()
+		fReader := NewFloats(reader, ',')
 		for err := error(nil); err == nil; {
 			_, err = fReader.Read(coordsBuf)
 		}
@@ -321,8 +354,8 @@ func BenchmarkFloatFile(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		fReader := NewFloats(file, ',')
 		b.StartTimer()
+		fReader := NewFloats(file, ',')
 		for err := error(nil); err == nil; {
 			_, err = fReader.Read(coordsBuf)
 		}
@@ -340,8 +373,8 @@ func BenchmarkFloatMemoryFile(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		fReader := NewFloats(file, ',')
 		b.StartTimer()
+		fReader := NewFloats(file, ',')
 		for err := error(nil); err == nil; {
 			_, err = fReader.Read(coordsBuf)
 		}
@@ -357,8 +390,8 @@ func BenchmarkFloatCounterFile(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		fReader := NewFloatsSize(file, ',', 1)
 		b.StartTimer()
+		fReader := NewFloatsSize(file, ',', 1)
 		for err := error(nil); err == nil; {
 			_, _, err = fReader.ReadCounter(coordsBuf)
 		}
@@ -373,8 +406,8 @@ func BenchmarkFloatFileCompare(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		fReader := csv.NewReader(bufio.NewReaderSize(file, 10000))
 		b.StartTimer()
+		fReader := csv.NewReader(bufio.NewReaderSize(file, 10000))
 		rows, _ := fReader.ReadAll()
 		for _, row := range rows {
 			for _, item := range row {
@@ -400,8 +433,8 @@ func BenchmarkFloatFileWithWork(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		fReader := NewFloats(file, ',')
 		b.StartTimer()
+		fReader := NewFloats(file, ',')
 		for err := error(nil); err == nil; {
 			c, err = fReader.Read(coord[:])
 			if c == 3 {
@@ -455,52 +488,105 @@ func BenchmarkFloatFileCompareWithWork(b *testing.B) {
 	}
 }
 
+func BenchmarkFloatZippedFileLineReader(b *testing.B) {
+	var tot float64
+	for i := 0; i < b.N; i++ {
+		gzfile, err := os.Open("floatlistlong.gz")
+		if err != nil {
+			panic(err)
+		}
+		file, err := readerFromZippedReader(gzfile)
+		if err != nil {
+			panic(err)
+		}
+		b.StartTimer()
+		lineReader := &SequenceReader{r:file, delimiter:'\n'}
+		itemBuf := make([]float64, 4) 
+		var r int=1
+		for ;err==nil;r++{
+			floatReader := NewFloats(lineReader, ',')
+			var c int = 0 
+			for i:=0;err==nil && c<len(itemBuf);{
+				i, err = floatReader.Read(itemBuf[c:])
+				c += i
+			}
+			switch err{
+			case EOA:
+				break
+			case io.EOF:
+				tot +=itemBuf[0]
+				tot +=itemBuf[1]
+				tot +=itemBuf[2]
+				lineReader.Next()
+				err=nil
+				continue
+			}
+		}
+		b.StopTimer()
+	}
+}
 
 
-/*  Hal3 Wed 22 Mar 00:00:51 GMT 2017 go version go1.6.2 linux/amd64
+/*  Hal3 Mon 28 Aug 16:54:26 BST 2017 go version go1.6.2 linux/amd64
 PASS
-BenchmarkFloat-2                   	 3000000	       587 ns/op
-BenchmarkFloatCompare-2            	  200000	      6489 ns/op
-BenchmarkFloatCompare2-2           	  200000	      7443 ns/op
-BenchmarkFloatFile-2               	     100	  21199485 ns/op
-BenchmarkFloatMemoryFile-2         	     100	  18615623 ns/op
-BenchmarkFloatCounterFile-2        	       2	 682852415 ns/op
-BenchmarkFloatFileCompare-2        	      20	  66358048 ns/op
-BenchmarkFloatFileWithWork-2       	      50	  33312708 ns/op
-BenchmarkFloatFileCompareWithWork-2	      20	  70178404 ns/op
-ok  	_/home/simon/Dropbox/github/working/listreader	127.709s
-Wed 22 Mar 00:03:00 GMT 2017
+BenchmarkFloat-2                    	 3000000	       568 ns/op
+BenchmarkFloatCompare-2             	  300000	      5478 ns/op
+BenchmarkFloatCompare2-2            	  200000	      6907 ns/op
+BenchmarkFloatFile-2                	     100	  19622752 ns/op
+BenchmarkFloatMemoryFile-2          	     100	  18473398 ns/op
+BenchmarkFloatCounterFile-2         	       2	 717038044 ns/op
+BenchmarkFloatFileCompare-2         	      20	  62361596 ns/op
+BenchmarkFloatFileWithWork-2        	      50	  33180541 ns/op
+BenchmarkFloatFileCompareWithWork-2 	      20	  70186269 ns/op
+BenchmarkFloatZippedFileLineReader-2	      20	  92254100 ns/op
+ok  	_/home/simon/Dropbox/github/working/listreader	124.337s
+Mon 28 Aug 16:56:32 BST 2017
 */
-/*  Hal3 Wed 22 Mar 00:04:10 GMT 2017  go version go1.8 linux/amd64
-
-BenchmarkFloat-2                      	 3000000	       511 ns/op
-BenchmarkFloatCompare-2               	  300000	      4468 ns/op
-BenchmarkFloatCompare2-2              	  300000	      6654 ns/op
-BenchmarkFloatFile-2                  	     200	   9273955 ns/op
-BenchmarkFloatMemoryFile-2            	     200	   8072509 ns/op
-BenchmarkFloatCounterFile-2           	       2	 637027535 ns/op
-BenchmarkFloatFileCompare-2           	      30	  51885284 ns/op
-BenchmarkFloatFileWithWork-2          	     100	  18718196 ns/op
-BenchmarkFloatFileCompareWithWork-2   	      20	  58575911 ns/op
-PASS
-ok  	_/home/simon/Dropbox/github/working/listreader	125.113s
-Wed 22 Mar 00:06:22 GMT 2017
-*/
-/*  Hal3 Sat 24 Jun 21:45:39 BST 2017  go version go1.9beta1 linux/amd64
+/*  Hal3 Mon 28 Aug 17:00:50 BST 2017  go version go1.9beta1 linux/amd64
 
 goos: linux
 goarch: amd64
-BenchmarkFloat-2                      	 5000000	       360 ns/op
-BenchmarkFloatCompare-2               	  500000	      2408 ns/op
-BenchmarkFloatCompare2-2              	  300000	      4386 ns/op
-BenchmarkFloatFile-2                  	     200	   9539447 ns/op
-BenchmarkFloatMemoryFile-2            	     200	   8152662 ns/op
-BenchmarkFloatCounterFile-2           	       2	 782847054 ns/op
-BenchmarkFloatFileCompare-2           	      30	  42439975 ns/op
-BenchmarkFloatFileWithWork-2          	     100	  18532332 ns/op
-BenchmarkFloatFileCompareWithWork-2   	      30	  51130660 ns/op
+BenchmarkFloat-2                       	 5000000	       357 ns/op
+BenchmarkFloatCompare-2                	  500000	      2384 ns/op
+BenchmarkFloatCompare2-2               	  300000	      4442 ns/op
+BenchmarkFloatFile-2                   	     200	   9624828 ns/op
+BenchmarkFloatMemoryFile-2             	     200	   8199902 ns/op
+BenchmarkFloatCounterFile-2            	       2	 802376036 ns/op
+BenchmarkFloatFileCompare-2            	      30	  43077167 ns/op
+BenchmarkFloatFileWithWork-2           	     100	  18556954 ns/op
+BenchmarkFloatFileCompareWithWork-2    	      30	  50878749 ns/op
+BenchmarkFloatZippedFileLineReader-2   	      20	  78344646 ns/op
 PASS
-ok  	_/home/simon/Dropbox/github/working/listreader	23.060s
-Sat 24 Jun 21:46:03 BST 2017
+ok  	_/home/simon/Dropbox/github/working/listreader	24.846s
+Mon 28 Aug 17:01:20 BST 2017
+*/
+/*  Hal3 Mon 28 Aug 17:05:54 BST 2017  go version go1.9beta1 linux/amd64
+
+goos: linux
+goarch: amd64
+BenchmarkFloat-2                       	 2000000	       737 ns/op
+BenchmarkFloatCompare-2                	 1000000	      2407 ns/op
+BenchmarkFloatCompare2-2               	  300000	      4433 ns/op
+BenchmarkFloatFile-2                   	     200	   9688695 ns/op
+BenchmarkFloatMemoryFile-2             	     200	   8127035 ns/op
+BenchmarkFloatCounterFile-2            	       2	 779873134 ns/op
+BenchmarkFloatFileCompare-2            	      30	  42933268 ns/op
+BenchmarkFloatFileWithWork-2           	     100	  18384101 ns/op
+BenchmarkFloatFileCompareWithWork-2    	      30	  51011531 ns/op
+BenchmarkFloatZippedFileLineReader-2   	      20	  78148267 ns/op
+PASS
+ok  	_/home/simon/Dropbox/github/working/listreader	24.961s
+Mon 28 Aug 17:06:20 BST 2017
+*/
+/*  Hal3 Tue 29 Aug 01:00:44 BST 2017 go version go1.6.2 linux/amd64
+Selection:-TestSequenceReader
+FAIL	_/home/simon/Dropbox/github/working/listreader [build failed]
+*/
+/*  Hal3 Tue 29 Aug 01:01:17 BST 2017 go version go1.6.2 linux/amd64
+Selection:-TestSequenceReader
+=== RUN   TestSequenceReader
+--- PASS: TestSequenceReader (0.02s)
+PASS
+ok  	_/home/simon/Dropbox/github/working/listreader	0.031s
 */
 

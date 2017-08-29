@@ -262,62 +262,38 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	return c, err
 }
 
-// DelimitedReaders end after they encounter a particular delimiter byte.
-// they do some buffer copying for each delimiter, don't make the buffer of the underlying Reader very much bigger than inter-delimited range. 
-//type DelimitedReader struct{
-//	r io.Reader
-//	delimiter byte
-//	unbuf []byte // any unconsumed bytes left after a partial read.
-//	end bool
-//} 
-//
-//// Reader complient Read method. 
-//func (d *DelimitedReader) Read(p []byte) (n int, err error){
-//	if len(d.unbuf)==0{
-//		n,err=d.r.Read(p)
-//		d.end= err==io.EOF
-//	}else{
-//		copy(p,d.unbuf)
-//		n=len(d.unbuf)
-//		d.unbuf=p[:0]
-//	}
-//	for i,b:=range(p[:n]){
-//		if b==d.delimiter{
-//			d.unbuf=p[i+1:n]
-//			return i, io.EOF
-//		}
-//	}
-//	return n,err
-//}
-//
-//// More returns a pointer to this DelimiterReader, but only if the underlying Reader hasn't reached its end.
-//func (d *DelimitedReader) More() *DelimitedReader{
-//	if d.end {return nil}
-//	return d
-//}
 
-// SectiorReaders are Readers up until a delimiter, 
-type SectionReader struct{
+// SequenceReaders Read from the embedded Reader until a delimiter, at which point they return zero bytes and io.EOF.
+// to enable Reading on to the next delimiter call Next()
+// when reached the io.EOF of the embedded Reader they report EOA (End of All.)
+type SequenceReader struct{
 	r io.Reader
 	delimiter byte
-	End bool
+	SectionEnded bool
 } 
 
-// Reader complient Read method. 
-func (d *SectionReader) Read(p []byte) (n int, err error){
-	if d.End==true {return 0,io.EOF}
-	for i:=range(p){
-		n,err=d.r.Read(p[i:i+1])
-		if n==1 && p[i]==d.delimiter{
-			d.End=true
-			return i-1, io.EOF
+// Reader compliant Read method. 
+func (d *SequenceReader) Read(p []byte) (n int, err error){
+	if d.SectionEnded {return 0,io.EOF}
+	var c int
+	for n=range(p){
+		c,err=d.r.Read(p[n:n+1])
+		if c==1 && p[n]==d.delimiter{
+			d.SectionEnded=true
+			return n-1, io.EOF
 		}
-		if err!=nil{break}
+		if err!=nil{
+			break
+		}
 	}
-	if err==io.EOF{err=EOA}
-	return n,err
+	if err==io.EOF{
+		err=EOA
+	}
+	return
 }
 
-var EOA = errors.New("End Of All")
-
+func (d *SequenceReader) Next(){
+	d.SectionEnded=false
+}
+var EOA = errors.New("No More Sections")
 

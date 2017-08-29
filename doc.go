@@ -9,9 +9,7 @@ designed for a list of the same type, not well suited to records two level stuct
 
 common 'single' delimiters might be; ',' ' ' '\t' '\n' '\x1F' '\x00'
 
-the delimiters and digits interpretations are integrated, and unconsumed bytes are internally buffered, for speed.
-
-results are returned in the provided fixed length buffer with a count, like a Reader, so files larger than memory can be processed.
+results are returned in the provided fixed length buffer with a count, like a Reader.
 
 an exposed flag indicates if ANY items failed to parse and these are represented in the buffer as NAN values.
 
