@@ -297,6 +297,8 @@ func TestSequenceReader(t *testing.T) {
 		}
 		lineReader.Next()
 	}
+	lines,_ := ioutil.ReadDir("lines")
+	if len(lines)!=8{t.Errorf("Not one file per line.")}
 }
 
 //func TestFloatsParseByLine(t *testing.T) {
@@ -589,6 +591,5 @@ PASS
 ok  	_/home/simon/Dropbox/github/working/listreader	24.961s
 Mon 28 Aug 17:06:20 BST 2017
 */
-
 
 
