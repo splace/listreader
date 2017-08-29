@@ -263,7 +263,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 }
 
 
-// SequenceReaders Read from the embedded Reader until a delimiter, at which point they return zero bytes and io.EOF.
+// SequenceReaders Read from the embedded Reader until a delimiter, at which point they return with io.EOF.
 // to enable Reading on to the next delimiter call Next()
 // when reached the io.EOF of the embedded Reader they report EOA (End of All.)
 type SequenceReader struct{
