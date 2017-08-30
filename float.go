@@ -31,23 +31,23 @@ const maxUint = math.MaxUint64 / 10
 type Floats struct {
 	io.Reader
 	Delimiter      byte
-	stage          progress
-	neg            bool   // negative number
-	whole          uint64 // whole number section, read so far
-	fraction       uint64 // fraction section read so far
-	fractionDigits uint8  // count of fractional section digits, used to turn integer, into required real, by power of ten division
-	exponent       uint64 // exponent section so far read
-	negExponent    bool
+	stage          progress  // progress stage or error hit. 
+	neg            bool   // if negative number
+	whole          uint64 // whole number section read so far.
+	fraction       uint64 // fraction section read so far.
+	fractionDigits uint8  // count of fractional section digits.
+	exponent       uint64 // exponent section so far read.
+	negExponent    bool   // if exponent negative
 	buf            []byte // internal buffer.
 	UnBuf          []byte // unconsumed bytes after last Read.
 }
 
-// NewFloats returns a Floats reading items from r delimited by d. Buffer size set to the bytes package default buffer size.
+// NewFloats returns a Floats reading items from r, with Delimiter set to by d. Buffer size set to the bytes package default buffer size.
 func NewFloats(r io.Reader, d byte) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bytes.MinRead)}
 }
 
-// NewFloatsSize returns a Floats reading items from r delimited by d, with a particular internal buffer size.
+// NewFloatsSize returns a Floats reading items from r, with Delimiter set to by d, and with a particular internal buffer size.
 func NewFloatsSize(r io.Reader, d byte, bSize int) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bSize)}
 }

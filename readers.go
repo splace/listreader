@@ -5,11 +5,11 @@ import "errors"
 
 
 // SequenceReaders Read from the embedded Reader until a delimiter, at which point they return with io.EOF. (so can be handed of as Readers.)
-// to enable Reading on to the next delimiter call Next(), (Count records how many times)
-// when reaching the io.EOF of the embedded Reader it returns an EOA error.
-// they can be used to split by a single unconditional higher level byte, like newline, and even hierarchically by changing the Delimiter. 
-// each section can be passed to different functions that require a Reader.
-// for example: the first line could be handled by a string list scanner.
+// To enable Reading on to the next delimiter call Next(), (Count records how many times)
+// When reaching the io.EOF of the embedded Reader it returns an EOA error.
+// They can be used to split by a single unconditional higher level byte, like newline, and even hierarchically by changing the Delimiter. 
+// Each section can be passed to different functions that require a Reader.
+// Example: the first line, of a table, could be handled by a string list scanner.
 type SequenceReader struct{
 	io.Reader
 	Delimiter byte
