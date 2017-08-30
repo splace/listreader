@@ -245,7 +245,7 @@ func TestFloatsParseInLineSequence(t *testing.T) {
 		panic(err)
 	}
 	defer file.Close()
-	lineReader := &SequenceReader{Reader:file, delimiter:'\n'}
+	lineReader := &SequenceReader{Reader:file, Delimiter:'\n'}
 	itemBuf := make([]float64, 4)  // the max floats per line, use append below if not sure, will get index panic if too many. 
 	var r int=1
 	for ;err==nil;r++{
@@ -282,7 +282,7 @@ func TestSequenceReader(t *testing.T) {
 -0.6629459857940673,3.9293100833892822,2.7228600978851318
 -0.5241180062294006,3.7434799671173096,2.6684000492095947`)
 	os.Mkdir("lines", 0755)
-	lineReader := &SequenceReader{Reader:source, delimiter:'\n'}
+	lineReader := &SequenceReader{Reader:source, Delimiter:'\n'}
 	for lineReader.Count<100 {
 		w, err := os.Create(fmt.Sprintf("lines/floatlistshort%v.txt",lineReader.Count))
 		if err != nil {
@@ -529,7 +529,7 @@ func BenchmarkFloatZippedFileLineReader(b *testing.B) {
 			panic(err)
 		}
 		b.StartTimer()
-		lineReader := &SequenceReader{Reader:file, delimiter:'\n'}
+		lineReader := &SequenceReader{Reader:file, Delimiter:'\n'}
 		itemBuf := make([]float64, 4) 
 		var r int=1
 		for ;err==nil;r++{
@@ -592,4 +592,8 @@ ok  	_/home/simon/Dropbox/github/working/listreader	24.961s
 Mon 28 Aug 17:06:20 BST 2017
 */
 
+/*  Hal3 Wed 30 Aug 01:03:55 BST 2017 go version go1.6.2 linux/amd64
+FAIL	_/home/simon/Dropbox/github/working/listreader [build failed]
+Wed 30 Aug 01:03:58 BST 2017
+*/
 

@@ -291,11 +291,11 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 
 
 // SequenceReaders Read from the embedded Reader until a delimiter, at which point they return with io.EOF.
-// to enable Reading on to the next delimiter call Next(), (Count records how many)
+// to enable Reading on to the next delimiter call Next(), (Count records how many times)
 // when reaching the io.EOF of the embedded Reader they report EOA (End of All.)
 type SequenceReader struct{
 	io.Reader
-	delimiter byte
+	Delimiter byte
 	Count int64
 	sectionEnded bool
 } 
@@ -306,7 +306,7 @@ func (dr SequenceReader) Read(p []byte) (n int, err error){
 	var c int
 	for n=range(p){
 		c,err=dr.Reader.Read(p[n:n+1])
-		if c==1 && p[n]==dr.delimiter{
+		if c==1 && p[n]==dr.Delimiter{
 			dr.sectionEnded=true
 			return n-1, io.EOF
 		}
