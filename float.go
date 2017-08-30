@@ -39,21 +39,21 @@ type Floats struct {
 	exponent       uint64 // exponent section so far read
 	negExponent    bool
 	buf            []byte // internal buffer.
-	UnBuf          []byte // slice of buf of the unconsumed bytes after last Read.
+	UnBuf          []byte // slice of buf containing the unconsumed bytes after last Read.
 }
 
-// NewFloats returns a Floats reading items from r separated by d, with the bytes package default buffer size.
+// NewFloats returns a Floats reading items from r delimited by d. Buffer size set to the bytes package default buffer size.
 func NewFloats(r io.Reader, d byte) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bytes.MinRead)}
 }
 
-// NewFloatsSize returns a Floats reading items from r separated by d, with a set internal buffer size.
+// NewFloatsSize returns a Floats reading items from r delimited by d, with a particular internal buffer size.
 func NewFloatsSize(r io.Reader, d byte, bSize int) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bSize)}
 }
 
 
-// ReadAll returns all the floating-point decodings available from Floats, in a slice, and any parse Error.
+// ReadAll returns all the floating-point decodes available from Floats, in a slice, and the first encountered parse Error.
 func (l *Floats) ReadAll() (fs []float64, err error) {
 	fbuf := make([]float64, 100)
 	for {
@@ -72,6 +72,7 @@ func (l *Floats) ReadAll() (fs []float64, err error) {
 	return
 }
 
+// ParseError is an error recording the stage during a parse that it became conclusive that the text was invalid for a float.
 type ParseError progress
 
 func (pe ParseError)Error()string{
@@ -85,7 +86,7 @@ func (pe ParseError)Error()string{
 	case errorSign:
 		return "Extra Sign"
 	case errorNondigit:
-		return "Non Numeric/Whitespace/Delimiter encountered"
+		return "Non Numeric/White-space/Delimiter encountered"
 	case exponentSign:
 		return "No Exponent found"
 	case errorTooLarge:
@@ -240,8 +241,9 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 					return c, nil
 				}
 			}
-		case ' ', '\n', '\r', '\t', '\f': // delimiters but multiple occurrences only count as one.
+		case ' ', '\n', '\r', '\t', '\f': // delimiters, but multiple occurrences are ignored.
 			switch l.stage {
+			case inMultiDelim:
 			case exponentSign:
 				l.stage = errorExp
 				fallthrough
@@ -280,7 +282,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			l.stage = errorNondigit
 		}
 	}
-	// make sure we capture last item
+	// make sure we capture the last item without trailing delimiter
 	if err == io.EOF && l.stage != begin && l.stage != inMultiDelim {
 		setVal()
 		l.stage = begin
