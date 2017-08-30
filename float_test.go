@@ -592,8 +592,4 @@ ok  	_/home/simon/Dropbox/github/working/listreader	24.961s
 Mon 28 Aug 17:06:20 BST 2017
 */
 
-/*  Hal3 Wed 30 Aug 01:03:55 BST 2017 go version go1.6.2 linux/amd64
-FAIL	_/home/simon/Dropbox/github/working/listreader [build failed]
-Wed 30 Aug 01:03:58 BST 2017
-*/
 
