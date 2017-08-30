@@ -6,7 +6,8 @@ import "errors"
 
 // SequenceReaders Read from the embedded Reader until a delimiter, at which point they return with io.EOF.
 // to enable Reading on to the next delimiter call Next(), (Count records how many times)
-// when reaching the io.EOF of the embedded Reader they report EOA (End of All.)
+// when reaching the io.EOF of the embedded Reader it returns an EOA error.
+// can be used to split by a single unconditional higher level byte, like newline, and even hierarchically by changing the Delimiter. 
 type SequenceReader struct{
 	io.Reader
 	Delimiter byte

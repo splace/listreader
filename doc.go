@@ -9,9 +9,11 @@ in this implementation only one, settable, byte is allowed as the 'single' delim
 
 common 'single' delimiters might be; ',' ' ' '\t' '\n' '\x1F' '\x00'
 
-parse errors (ParseError type) returned in preference to io.EOF. (io.EOF returned on subsequent Read)
+currently hard coded white-space; ' ', '\n', '\r', '\t', '\f'
 
-a ParseError does not stop processing, so more than one can occur per Read, the first one is returned.
+parse errors (ParseError type) are returned in preference to io.EOF. (io.EOF returned on subsequent Read)
+
+a parse error does not stop processing, so more than one can occur per Read, the first one is returned.
 
 any items triggering a ParseError are indicated in the returned Float array as the NaN value.
 

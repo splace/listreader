@@ -39,7 +39,7 @@ type Floats struct {
 	exponent       uint64 // exponent section so far read
 	negExponent    bool
 	buf            []byte // internal buffer.
-	UnBuf          []byte // slice of buf containing the unconsumed bytes after last Read.
+	UnBuf          []byte // unconsumed bytes after last Read.
 }
 
 // NewFloats returns a Floats reading items from r delimited by d. Buffer size set to the bytes package default buffer size.
@@ -282,7 +282,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			l.stage = errorNondigit
 		}
 	}
-	// make sure we capture the last item without trailing delimiter
+	// make sure we capture the last item when its without a trailing delimiter
 	if err == io.EOF && l.stage != begin && l.stage != inMultiDelim {
 		setVal()
 		l.stage = begin
