@@ -297,7 +297,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		}
 	}
 	// make sure we capture the last item when its without a trailing delimiter
-	if err == io.EOF {
+	if err != nil && l.stage!=inMultiDelim {
 		switch l.stage {
 		case begin:
 			l.stage = errorNothing
