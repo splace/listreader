@@ -179,8 +179,8 @@ func TestFloatsParseNaN(t *testing.T) {
 		if pe!=ParseError(errorNondigit){t.Error("Not Non digit error:"+pe.Error())}
 	}
 
-	if fmt.Sprint(nums) != "[1 2 -3 4 5 6 700 8 NaN 10.0001 NaN]" {
-		t.Error(fmt.Sprint(nums) + "!=[1 2 -3 4 5 6 700 8 NaN 10.0001 NaN]")
+	if fmt.Sprint(nums) != "[1 2 -3 4 5 6 700 8 NaN NaN 10.0001 NaN]" {
+		t.Error(fmt.Sprint(nums) + "!=[1 2 -3 4 5 6 700 8 NaN NaN 10.0001 NaN]")
 	}
 	
 	

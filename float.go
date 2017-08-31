@@ -10,8 +10,8 @@ import "strconv"
 type progress uint8
 
 const (
-	begin progress = iota
-	inMultiDelim
+	inMultiDelim  progress = iota
+	begin
 	inWhole
 	beginFraction
 	inFraction
@@ -177,6 +177,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		switch b[i] {
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			switch l.stage {
+			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
 			case begin, inMultiDelim:
 				l.stage = inWhole
 				l.whole = uint64(b[i]) - 48
@@ -212,6 +213,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '.':
 			switch l.stage {
+			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
 			case begin, inMultiDelim, inWhole:
 				l.stage = beginFraction
 			case beginFraction,inFraction,exponentSign,inExponent:
@@ -219,6 +221,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case 'e', 'E':
 			switch l.stage {
+			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
 			case inWhole, inFraction:
 				l.stage = exponentSign
 			case begin,inMultiDelim,beginFraction,exponentSign,inExponent:
@@ -226,12 +229,18 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case l.Delimiter: // single delimiter
 			switch l.stage {
-			case begin:
-				l.stage = errorNothing
 			case inMultiDelim:
 				l.stage = begin
 			case exponentSign:
 				l.stage = errorExp
+				setVal()
+				l.stage = begin
+				if c >= len(fs) {
+					l.UnBuf = b[i+1 : n]
+					return c, nil
+				}
+			case begin:
+				l.stage = errorNothing
 				fallthrough
 			default:
 				setVal()
@@ -243,11 +252,10 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case ' ', '\n', '\r', '\t', '\f': // delimiters, but multiple occurrences are ignored.
 			switch l.stage {
-			case inMultiDelim:
+			case inMultiDelim,begin:
 			case exponentSign:
 				l.stage = errorExp
-				fallthrough
-			case inWhole, inFraction, inExponent, beginFraction:
+			case inWhole, inFraction, inExponent,beginFraction:
 				setVal()
 				l.stage = inMultiDelim
 				if c >= len(fs) {
@@ -259,6 +267,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '-':
 			switch l.stage {
+			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
 			case begin, inMultiDelim:
 				l.neg = true
 				l.stage = inWhole
@@ -270,6 +279,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '+':
 			switch l.stage {
+			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
 			case begin, inMultiDelim:
 				l.stage = inWhole
 			case exponentSign:
@@ -279,13 +289,22 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 
 		default:
-			l.stage = errorNondigit
+			switch l.stage {
+			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
+			default:
+				l.stage = errorNondigit
+			}
 		}
 	}
 	// make sure we capture the last item when its without a trailing delimiter
-	if err == io.EOF && l.stage != begin && l.stage != inMultiDelim {
+	if err == io.EOF {
+		switch l.stage {
+		case begin:
+			l.stage = errorNothing
+		case exponentSign:
+			l.stage = errorExp
+		}
 		setVal()
-		l.stage = begin
 	}
 	return c, err
 }
