@@ -283,8 +283,8 @@ func TestSectionReader(t *testing.T) {
 -0.5241180062294006,3.7434799671173096,2.6684000492095947`)
 	os.Mkdir("lines", 0755)
 	lineReader := &SectionReader{Reader:source, Delimiter:'\n'}
-	for lineReader.Count<100 {
-		w, err := os.Create(fmt.Sprintf("lines/floatlistshort%v.txt",lineReader.Count))
+	for lineCounter:=0;lineCounter<100;lineCounter++{
+		w, err := os.Create(fmt.Sprintf("lines/floatlistshort%v.txt",lineCounter))
 		if err != nil {
 			panic(err)
 		}
@@ -295,7 +295,10 @@ func TestSectionReader(t *testing.T) {
 		}else if err!=nil {
 			panic(err)
 		}
-		lineReader.Next()
+		err=lineReader.Next()
+		if err != nil {
+			panic(err)
+		}
 	}
 	lines,_ := ioutil.ReadDir("lines")
 	if len(lines)!=8{t.Errorf("Not one file per line.")}

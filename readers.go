@@ -5,7 +5,7 @@ import "errors"
 
 
 // SequenceReaders Read from the embedded Reader until a delimiter, at which point they return with io.EOF. (so can be handed of as Readers.)
-// To enable Reading on to the next delimiter call Next(), (Count records how many times)
+// To be able to Read on to the next section call Next().(or multiple times to skip sections)
 // When reaching the io.EOF of the embedded Reader it returns an EOA error.
 // They can be used to split by a single unconditional higher level byte, like newline, and even hierarchically by changing the Delimiter. 
 // Each section can be passed to different functions that require a Reader.
@@ -13,12 +13,11 @@ import "errors"
 type SectionReader struct{
 	io.Reader
 	Delimiter byte
-	Count int64
 	sectionEnded bool
 } 
 
 // Reader compliant Read method. 
-func (dr SectionReader) Read(p []byte) (n int, err error){
+func (dr *SectionReader) Read(p []byte) (n int, err error){
 	if dr.sectionEnded {return 0,io.EOF}
 	var c int
 	for n=range(p){
@@ -37,9 +36,19 @@ func (dr SectionReader) Read(p []byte) (n int, err error){
 	return
 }
 
-func (dr *SectionReader) Next(){
-	dr.Count++
+func (dr *SectionReader) Next() (err error){
+	if !dr.sectionEnded {
+		// read to next delimiter
+		buf:=make([]byte,1)
+		for { 
+			_,err=dr.Reader.Read(buf)
+			if buf[0] ==dr.Delimiter {break}
+			if err==io.EOF {return EOA}
+			if err!=nil {return}
+		}
+	}
 	dr.sectionEnded=false
+	return
 }
 
 var EOA = errors.New("No More Sections")
