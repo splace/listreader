@@ -57,15 +57,16 @@ func NewFloatsSize(r io.Reader, d byte, bSize int) *Floats {
 func (l *Floats) ReadAll() (fs []float64, err error) {
 	fbuf := make([]float64, 100)
 	for {
-		c, eerr := l.Read(fbuf)
+		c, rerr := l.Read(fbuf)
 		fs = append(fs, fbuf[:c]...)
-		if eerr!=nil{
+		if rerr!=nil{
 			 // if its a parse error only keep the first and keep going
-			if _,is:=eerr.(ParseError);is{
-				if err==nil{err=eerr}
+			if _,is:=rerr.(ParseError);is{
+				if err==nil{err=rerr}
 				continue
 			}
-			if eerr!=io.EOF{err=eerr}
+			// if its not EOF error then return it
+			if rerr!=io.EOF{err=rerr}
 			return
 			}
 	}
@@ -101,7 +102,7 @@ func (pe ParseError)Error()string{
 // Any non-parsable items encountered are returned, in the slice, as NaN values.
 // Internal buffering means the underlying io.Reader will in general be read past the location of the returned values. (unless the internal buffer length is set to 1.)
 func (l *Floats) Read(fs []float64) (c int, err error) {
-	var power10 func(uint64) float64
+	var power10 func(uint64) float64  // optimisation: power ten of int
 	power10 = func(n uint64) float64 {
 		switch n {
 		case 0:
@@ -164,7 +165,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		b = l.UnBuf
 		l.UnBuf = l.UnBuf[0:0]
 	} else {
-		// don’t override a parse error 
+		// don’t override an existing parse error (embedded Reader error will still be available on subsequent call.)
 		if err==nil{
 			n, err = l.Reader.Read(l.buf)
 		}else{
@@ -224,7 +225,6 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 				l.stage = errorExp
 			}
 		case l.Delimiter: // single delimiter
-			//fmt.Println(l)
 			switch l.stage {
 			case begin:
 				l.stage = errorNothing

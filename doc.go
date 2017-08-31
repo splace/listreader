@@ -15,7 +15,9 @@ parse errors (ParseError type) are returned in preference to io.EOF. (io.EOF ret
 
 a parse error does not stop processing, so more than one can occur per Read, the first one is returned.
 
-any items triggering a ParseError are indicated in the returned Float array as the NaN value.
+any items triggering a ParseError are indicated in the returned Float slice as the NaN value.
+
+any values outside float64's range are returned in the slice as +/-Inf.
 
 the unconsumed buffer (UnBuf) is exposed.
 
