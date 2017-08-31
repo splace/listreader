@@ -98,7 +98,7 @@ func (pe ParseError)Error()string{
 }
 
 // Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, the buffer is full or an error on the Reader occurs.
-// It doesn't stop for parsing errors, but returns, the first encountered as type ParseError{}
+// It doesn't abort for parsing errors, but will return the first encountered as type ParseError{}.
 // Any non-parsable items encountered are returned, in the slice, as NaN values.
 // Internal buffering means the underlying io.Reader will in general be read past the location of the returned values. (unless the internal buffer length is set to 1.)
 func (l *Floats) Read(fs []float64) (c int, err error) {

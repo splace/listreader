@@ -10,7 +10,7 @@ import "errors"
 // They can be used to split by a single unconditional higher level byte, like newline, and even hierarchically by changing the Delimiter. 
 // Each section can be passed to different functions that require a Reader.
 // Example: the first line, of a table, could be handled by a string list scanner.
-type SequenceReader struct{
+type SectionReader struct{
 	io.Reader
 	Delimiter byte
 	Count int64
@@ -18,7 +18,7 @@ type SequenceReader struct{
 } 
 
 // Reader compliant Read method. 
-func (dr SequenceReader) Read(p []byte) (n int, err error){
+func (dr SectionReader) Read(p []byte) (n int, err error){
 	if dr.sectionEnded {return 0,io.EOF}
 	var c int
 	for n=range(p){
@@ -37,7 +37,7 @@ func (dr SequenceReader) Read(p []byte) (n int, err error){
 	return
 }
 
-func (dr *SequenceReader) Next(){
+func (dr *SectionReader) Next(){
 	dr.Count++
 	dr.sectionEnded=false
 }

@@ -239,13 +239,13 @@ func TestFloatsParse2(t *testing.T) {
 	}
 }
 
-func TestFloatsParseInLineSequence(t *testing.T) {
+func TestFloatsParseInLines(t *testing.T) {
 	file, err := os.Open("floatlistlong.txt")
 	if err != nil {
 		panic(err)
 	}
 	defer file.Close()
-	lineReader := &SequenceReader{Reader:file, Delimiter:'\n'}
+	lineReader := &SectionReader{Reader:file, Delimiter:'\n'}
 	itemBuf := make([]float64, 4)  // the max floats per line, use append below if not sure, will get index panic if too many. 
 	var r int=1
 	for ;err==nil;r++{
@@ -272,7 +272,7 @@ func TestFloatsParseInLineSequence(t *testing.T) {
 
 }
 
-func TestSequenceReader(t *testing.T) {
+func TestSectionReader(t *testing.T) {
 	source := strings.NewReader(`-0.5639740228652954,3.7998700141906738,2.7228600978851318
 -0.5956140160560607,3.8421299457550049,2.7341499328613281
 -0.606091022491455,3.8560400009155273,2.7367799282073975
@@ -282,7 +282,7 @@ func TestSequenceReader(t *testing.T) {
 -0.6629459857940673,3.9293100833892822,2.7228600978851318
 -0.5241180062294006,3.7434799671173096,2.6684000492095947`)
 	os.Mkdir("lines", 0755)
-	lineReader := &SequenceReader{Reader:source, Delimiter:'\n'}
+	lineReader := &SectionReader{Reader:source, Delimiter:'\n'}
 	for lineReader.Count<100 {
 		w, err := os.Create(fmt.Sprintf("lines/floatlistshort%v.txt",lineReader.Count))
 		if err != nil {
@@ -529,7 +529,7 @@ func BenchmarkFloatZippedFileLineReader(b *testing.B) {
 			panic(err)
 		}
 		b.StartTimer()
-		lineReader := &SequenceReader{Reader:file, Delimiter:'\n'}
+		lineReader := &SectionReader{Reader:file, Delimiter:'\n'}
 		itemBuf := make([]float64, 4) 
 		var r int=1
 		for ;err==nil;r++{
