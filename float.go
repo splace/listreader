@@ -305,6 +305,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			l.stage = errorExp
 		}
 		setVal()
+		l.stage = inMultiDelim
 	}
 	return c, err
 }

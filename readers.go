@@ -24,7 +24,7 @@ func (dr *SectionReader) Read(p []byte) (n int, err error){
 		c,err=dr.Reader.Read(p[n:n+1])
 		if c==1 && p[n]==dr.Delimiter{
 			dr.sectionEnded=true
-			return n-1, io.EOF
+			return n, io.EOF
 		}
 		if err!=nil{
 			break
