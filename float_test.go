@@ -203,7 +203,6 @@ func TestFloatsParseNaN(t *testing.T) {
 	if fmt.Sprint(nums) != "[1 2 -3 4 5 6 700 8 9 10.0001 1 10]" {
 		t.Error(fmt.Sprint(nums) + "!=[1 2 -3 4 5 6 700 8 9 10.0001 1 10]")
 	}
-
 }
 
 func TestFloatsParse2(t *testing.T) {
