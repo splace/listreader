@@ -295,10 +295,9 @@ func TestSectionReader(t *testing.T) {
 		}else if err!=nil {
 			panic(err)
 		}
-		err=lineReader.Next()
-		if err != nil {
-			panic(err)
-		}
+		err=lineReader.Next()  // grab err to stop creating unnecessery file on next loop
+		if err==EOA{break} 
+		if err!=nil{panic(err)} 
 	}
 	lines,_ := ioutil.ReadDir("lines")
 	if len(lines)!=8{t.Errorf("Not one file per line.")}
