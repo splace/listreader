@@ -5,7 +5,6 @@ import "math"
 import "bytes"
 import "strconv"
 
-//  TODO could we have a scaled int, so fixed precision rather than floating, version of this?
 
 type progress uint8
 
@@ -105,7 +104,8 @@ func (pe ParseError) Error() string {
 // Any non-parsable items encountered are returned, in the slice, as NaN values.
 // Internal buffering means the underlying io.Reader will in general be read past the location of the returned values. (unless the internal buffer length is set to 1.)
 func (l *Floats) Read(fs []float64) (c int, err error) {
-	var power10 func(uint64) float64 // optimisation: power ten of int
+	// optimisation: power ten of int
+	var power10 func(uint64) float64 
 	power10 = func(n uint64) float64 {
 		switch n {
 		case 0:
@@ -301,7 +301,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		}
 	}
-	// do we have something before the error
+	// did we have something before the error
 	if err != nil && l.stage != inMultiDelim {
 		switch l.stage {
 		case begin:
