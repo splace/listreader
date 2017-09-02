@@ -10,7 +10,7 @@ import "strconv"
 type progress uint8
 
 const (
-	inMultiDelim  progress = iota
+	inMultiDelim progress = iota
 	begin
 	inWhole
 	beginFraction
@@ -31,15 +31,15 @@ const maxUint = math.MaxUint64 / 10
 type Floats struct {
 	io.Reader
 	Delimiter      byte
-	stage          progress  // progress stage or error hit. 
-	neg            bool   // if negative number
-	whole          uint64 // whole number section read so far.
-	fraction       uint64 // fraction section read so far.
-	fractionDigits uint8  // count of fractional section digits.
-	exponent       uint64 // exponent section so far read.
-	negExponent    bool   // if exponent negative
-	buf            []byte // internal buffer.
-	UnBuf          []byte // unconsumed bytes after last Read.
+	stage          progress // progress stage or error hit.
+	neg            bool     // if negative number
+	whole          uint64   // whole number section read so far.
+	fraction       uint64   // fraction section read so far.
+	fractionDigits uint8    // count of fractional section digits.
+	exponent       uint64   // exponent section so far read.
+	negExponent    bool     // if exponent negative
+	buf            []byte   // internal buffer.
+	UnBuf          []byte   // unconsumed bytes after last Read.
 }
 
 // NewFloats returns a Floats reading items from r, with Delimiter set to by d. Buffer size set to the bytes package default buffer size.
@@ -52,23 +52,26 @@ func NewFloatsSize(r io.Reader, d byte, bSize int) *Floats {
 	return &Floats{Reader: r, Delimiter: d, buf: make([]byte, bSize)}
 }
 
-
-// ReadAll returns all the floating-point decodes available from Floats, in a slice, and the first encountered parse Error.
+// ReadAll returns all the floating-point decodes available from Floats, in a slice, and the first encountered parse, or any embedded Reader, Error.
 func (l *Floats) ReadAll() (fs []float64, err error) {
 	fbuf := make([]float64, 100)
 	for {
 		c, rerr := l.Read(fbuf)
 		fs = append(fs, fbuf[:c]...)
-		if rerr!=nil{
-			 // if its a parse error only keep the first and keep going
-			if _,is:=rerr.(ParseError);is{
-				if err==nil{err=rerr}
+		if rerr != nil {
+			// if its a parse error only keep the first and keep going
+			if _, is := rerr.(ParseError); is {
+				if err == nil {
+					err = rerr
+				}
 				continue
 			}
 			// if its not EOF error then return it
-			if rerr!=io.EOF{err=rerr}
-			return
+			if rerr != io.EOF {
+				err = rerr
 			}
+			return
+		}
 	}
 	return
 }
@@ -76,8 +79,8 @@ func (l *Floats) ReadAll() (fs []float64, err error) {
 // ParseError is an error recording the stage during a parse that it became conclusive that the text was invalid for a float.
 type ParseError progress
 
-func (pe ParseError)Error()string{
-	switch progress(pe){
+func (pe ParseError) Error() string {
+	switch progress(pe) {
 	case errorDot:
 		return "Extra Dot"
 	case errorExp:
@@ -93,8 +96,8 @@ func (pe ParseError)Error()string{
 	case errorTooLarge:
 		return "Value too large"
 	default:
-		return "Unknown:#"+strconv.Itoa(int(pe))
-	} 		
+		return "Unknown:#" + strconv.Itoa(int(pe))
+	}
 }
 
 // Read reads delimited items and places their decoded floating-point values into the supplied buffer, until the embedded reader needs to be read again, the buffer is full or an error on the Reader occurs.
@@ -102,7 +105,7 @@ func (pe ParseError)Error()string{
 // Any non-parsable items encountered are returned, in the slice, as NaN values.
 // Internal buffering means the underlying io.Reader will in general be read past the location of the returned values. (unless the internal buffer length is set to 1.)
 func (l *Floats) Read(fs []float64) (c int, err error) {
-	var power10 func(uint64) float64  // optimisation: power ten of int
+	var power10 func(uint64) float64 // optimisation: power ten of int
 	power10 = func(n uint64) float64 {
 		switch n {
 		case 0:
@@ -133,8 +136,10 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	var setVal func()
 	setVal = func() {
 		switch l.stage {
-		case errorDot,errorExp, errorNothing,errorSign,errorNondigit,exponentSign:
-			if err==nil{err=ParseError(l.stage)}
+		case errorDot, errorExp, errorNothing, errorSign, errorNondigit, exponentSign:
+			if err == nil {
+				err = ParseError(l.stage)
+			}
 			fs[c] = math.NaN()
 		case inWhole, beginFraction:
 			fs[c] = float64(l.whole)
@@ -166,10 +171,10 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		l.UnBuf = l.UnBuf[0:0]
 	} else {
 		// don’t override an existing parse error (embedded Reader error will still be available on subsequent call.)
-		if err==nil{
+		if err == nil {
 			n, err = l.Reader.Read(l.buf)
-		}else{
-			n, _ = l.Reader.Read(l.buf) 
+		} else {
+			n, _ = l.Reader.Read(l.buf)
 		}
 		b = l.buf
 	}
@@ -177,7 +182,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		switch b[i] {
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			switch l.stage {
-			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
+			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			case begin, inMultiDelim:
 				l.stage = inWhole
 				l.whole = uint64(b[i]) - 48
@@ -213,18 +218,18 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '.':
 			switch l.stage {
-			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
+			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			case begin, inMultiDelim, inWhole:
 				l.stage = beginFraction
-			case beginFraction,inFraction,exponentSign,inExponent:
+			case beginFraction, inFraction, exponentSign, inExponent:
 				l.stage = errorDot
 			}
 		case 'e', 'E':
 			switch l.stage {
-			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
+			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			case inWhole, inFraction:
 				l.stage = exponentSign
-			case begin,inMultiDelim,beginFraction,exponentSign,inExponent:
+			case begin, inMultiDelim, beginFraction, exponentSign, inExponent:
 				l.stage = errorExp
 			}
 		case l.Delimiter: // single delimiter
@@ -252,10 +257,10 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case ' ', '\n', '\r', '\t', '\f': // delimiters, but multiple occurrences are ignored.
 			switch l.stage {
-			case inMultiDelim,begin:
+			case inMultiDelim, begin:
 			case exponentSign:
 				l.stage = errorExp
-			case inWhole, inFraction, inExponent,beginFraction:
+			case inWhole, inFraction, inExponent, beginFraction:
 				setVal()
 				l.stage = inMultiDelim
 				if c >= len(fs) {
@@ -267,37 +272,37 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '-':
 			switch l.stage {
-			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
+			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			case begin, inMultiDelim:
 				l.neg = true
 				l.stage = inWhole
 			case exponentSign:
 				l.negExponent = true
 				l.stage = inExponent
-			case inWhole, inFraction,beginFraction,inExponent:
+			case inWhole, inFraction, beginFraction, inExponent:
 				l.stage = errorSign
 			}
 		case '+':
 			switch l.stage {
-			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
+			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			case begin, inMultiDelim:
 				l.stage = inWhole
 			case exponentSign:
 				l.stage = inExponent
-			case inWhole, inFraction, beginFraction,inExponent:
+			case inWhole, inFraction, beginFraction, inExponent:
 				l.stage = errorSign
 			}
 
 		default:
 			switch l.stage {
-			case errorDot,errorExp,errorNothing,errorSign,errorNondigit,errorTooLarge:
+			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			default:
 				l.stage = errorNondigit
 			}
 		}
 	}
 	// do we have something before the error
-	if err != nil && l.stage!=inMultiDelim {
+	if err != nil && l.stage != inMultiDelim {
 		switch l.stage {
 		case begin:
 			l.stage = errorNothing
