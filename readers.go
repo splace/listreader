@@ -3,12 +3,13 @@ package listreader
 import "io"
 import "bytes"
 
-// PartReader is a Reader that ends, as far as Reader consumers are concerned, when it finds a particular Delimiter, but that can be restarted. 
+// PartReader is a Reader that ends, as far as Reader consumers are concerned, when it encounters a particular Delimiter.
+// Next() allows more to be Read from them, up to the next occurrence of Delimiter. 
 type PartReader struct {
 	io.Reader
+	Count uint
 	Delimiter    byte
 	delimiterFound bool
-	Count uint
 	unused []byte
 }
 
@@ -46,7 +47,7 @@ func (dr *PartReader) Read(p []byte) (n int, err error) {
 	return
 }
 
-// Next Reads from the embedded reader, if needed, until just after Delimiter is found.
+// Next Reads from the embedded reader, if needed, until Delimiter is found.
 // Any error encountered is returned. 
 func (dr *PartReader) Next() (err error) {
 	dr.Count++
