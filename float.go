@@ -8,10 +8,10 @@ import "strconv"
 type progress uint8
 
 const (
-	inMultiDelim progress = iota
-	begin
+	start progress = iota
+	delimFound
 	inWhole
-	beginFraction
+	startFraction
 	inFraction
 	exponentSign
 	inExponent
@@ -138,7 +138,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		case errorDot, errorExp, errorNothing, errorSign, errorNondigit, exponentSign:
 			err = ParseError(l.stage)
 			fs[c] = math.NaN()
-		case inWhole, beginFraction:
+		case inWhole, startFraction:
 			fs[c] = float64(l.whole)
 		case inFraction:
 			fs[c] = float64(l.whole) + float64(l.fraction)/power10(uint64(l.fractionDigits))
@@ -180,7 +180,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			switch l.stage {
 			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
-			case begin, inMultiDelim:
+			case delimFound, start:
 				l.stage = inWhole
 				l.whole = uint64(b[i]) - 48
 			case inWhole:
@@ -190,7 +190,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 					l.whole *= 10
 					l.whole += uint64(b[i]) - 48
 				}
-			case beginFraction:
+			case startFraction:
 				l.stage = inFraction
 				l.fraction = uint64(b[i]) - 48
 				l.fractionDigits = 1
@@ -216,9 +216,9 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		case '.':
 			switch l.stage {
 			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
-			case begin, inMultiDelim, inWhole:
-				l.stage = beginFraction
-			case beginFraction, inFraction, exponentSign, inExponent:
+			case delimFound, start, inWhole:
+				l.stage = startFraction
+			case startFraction, inFraction, exponentSign, inExponent:
 				l.stage = errorDot
 			}
 		case 'e', 'E':
@@ -226,27 +226,27 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			case inWhole, inFraction:
 				l.stage = exponentSign
-			case begin, inMultiDelim, beginFraction, exponentSign, inExponent:
+			case delimFound, start, startFraction, exponentSign, inExponent:
 				l.stage = errorExp
 			}
 		case l.Delimiter: // single delimiter
 			switch l.stage {
-			case inMultiDelim:
-				l.stage = begin
+			case start:
+				l.stage = delimFound
 			case exponentSign:
 				l.stage = errorExp
 				setVal()
-				l.stage = begin
+				l.stage = delimFound
 				if c >= len(fs) {
 					l.UnBuf = b[i+1 : n]
 					return c, nil
 				}
-			case begin:
+			case delimFound:
 				l.stage = errorNothing
 				fallthrough
 			default:
 				setVal()
-				l.stage = begin
+				l.stage = delimFound
 				if c >= len(fs) {
 					l.UnBuf = b[i+1 : n]
 					return c, nil
@@ -254,39 +254,39 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case ' ', '\n', '\r', '\t', '\f': // delimiters, but multiple occurrences are ignored.
 			switch l.stage {
-			case inMultiDelim, begin:
+			case start, delimFound:
 			case exponentSign:
 				l.stage = errorExp
-			case inWhole, inFraction, inExponent, beginFraction:
+			case inWhole, inFraction, inExponent, startFraction:
 				setVal()
-				l.stage = inMultiDelim
+				l.stage = start
 				if c >= len(fs) {
 					l.UnBuf = b[i+1 : n]
 					return c, nil
 				}
 			default:
-				l.stage = inMultiDelim
+				l.stage = start
 			}
 		case '-':
 			switch l.stage {
 			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
-			case begin, inMultiDelim:
+			case delimFound, start:
 				l.neg = true
 				l.stage = inWhole
 			case exponentSign:
 				l.negExponent = true
 				l.stage = inExponent
-			case inWhole, inFraction, beginFraction, inExponent:
+			case inWhole, inFraction, startFraction, inExponent:
 				l.stage = errorSign
 			}
 		case '+':
 			switch l.stage {
 			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
-			case begin, inMultiDelim:
+			case delimFound, start:
 				l.stage = inWhole
 			case exponentSign:
 				l.stage = inExponent
-			case inWhole, inFraction, beginFraction, inExponent:
+			case inWhole, inFraction, startFraction, inExponent:
 				l.stage = errorSign
 			}
 
@@ -299,15 +299,15 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		}
 	}
 	// did we have something before the error
-	if err != nil && l.stage != inMultiDelim {
+	if err != nil && l.stage != start {
 		switch l.stage {
-		case begin:
+		case delimFound:
 			l.stage = errorNothing
 		case exponentSign:
 			l.stage = errorExp
 		}
 		setVal()
-		l.stage = inMultiDelim
+		l.stage = start
 	}
 	return c, err
 }
