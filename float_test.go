@@ -15,6 +15,8 @@ import "strconv"
 import "math/rand"
 import "math/big"
 
+const testData="69026929.684462,85854991.053164,94878336.971103,39056944.91186,-36804328.550028,-93946081.210834,35376755.304344,40224912.641675,32145237.239145,-89055677.125722,-17580870.686835,-74118543.963003,-24362128.472124,35500417.060917,35838209.714665,96253547.443195,81292896.150282,41985637.388185,-47441198.372953,-47546200.709206,16142269.278011,9938582.4566421,7211793.7296684,-18562080.021278,-43801357.664075,-65230649.600379,83214031.338326,-33461766.379635,57917408.625557,96512787.414953,16185218.522411,-47395205.752642,31329303.202838,-83869325.54835,-73158607.89882,-95724130.513018,2688194.114104,13973627.665068,-13390788.488738,53539485.369595,62599812.803138,-30567287.714485,23675394.860876,-14836705.063859,65427922.255093,81773192.240751,-8164138.4904106,-38431095.768898,-30139655.401064,-89491031.872803,73623700.055119,67297115.441084,-47826399.164193,-19796257.987524,-44934094.764727,-33274333.33419,-89541268.343824,-37000779.778231,94182278.678837,-57117088.864146,-53777779.803508,75787845.149537,64944931.196489,99194594.937933,-86320270.125903,-70258192.145386,53605561.495575,34987917.512184,-72330711.117168,-17793124.969021,54974506.215646,4381309.5914113,51579639.479322,36099875.874864,44518937.330935,94249660.798465,19436710.010952,7898705.8754539,20752698.611819,19580987.896575,-42165488.815943,70306735.285701,-59926034.398342,10161865.553894,28796179.46632,-59863387.68148,-30806085.435118,-81434137.831179,69726676.386654,-41563967.774419,78444136.762267,-82321266.821735,94684133.955596,49874582.770222,-56311713.231873,37492933.560858,-10726742.684248,-93792430.68108,22167227.380987,-31828109.608883"
+
 func TestFloatsRandom(t *testing.T) {
 	buf := bytes.NewBuffer(make([]byte, 0, 1000000))
 	tot := big.NewFloat(0)
@@ -101,7 +103,7 @@ func TestFloatsRandom(t *testing.T) {
 	}
 
 	//  original total not equal to parsed totals!!
-	// TODO must be string rep of big not exact with some edge case, dont have to=ime to track down now
+	// TODO must be string rep of big not exact with some edge case, dont have time to track down now
 	//	if tot.Cmp(tot1)!=0 || tot1.Cmp(tot2)!=0 || tot2.Cmp(tot3)!=0 {
 	//		t.Error(fmt.Sprintf("%v != %v != %v != %v",tot,tot1,tot2,tot3))
 	//	}
@@ -134,7 +136,6 @@ func ReadFloats(r io.Reader) ([]float64, error) {
 
 func TestFloatsParse(t *testing.T) {
 	reader := strings.NewReader(" 1 2 -3 \t4 ,50e-1 +6 700., 8 9 \n\f 10.0001\t000001,1e01,\"eof\"")
-	//var bufLen int64 = 1
 	var i int
 	fReader := NewFloats(reader, ',')
 	coordsBuf := make([]float64, 1)
@@ -143,14 +144,16 @@ func TestFloatsParse(t *testing.T) {
 		if c == 0 {
 			continue
 		}
-		if fmt.Sprint(err, coordsBuf[:]) != []string{"<nil> [1]", "<nil> [2]", "<nil> [-3]", "<nil> [4]", "<nil> [5]", "<nil> [6]", "<nil> [700]", "<nil> [8]", "<nil> [9]", "<nil> [10.0001]", "<nil> [1]", "<nil> [10]", "EOF [NaN]"}[i] {
+		if fmt.Sprint(err, coordsBuf[:]) != []string{"<nil> [1]", "<nil> [2]", "<nil> [-3]", "<nil> [4]", "<nil> [5]", "<nil> [6]", "<nil> [700]", "<nil> [8]", "<nil> [9]", "<nil> [10.0001]", "<nil> [1]", "<nil> [10]", ParseError(errorNondigit).Error()+" [NaN]"}[i] {
 			t.Error(i, fmt.Sprint(err, coordsBuf[:]))
 		}
 		i++
 		if err!=nil {
 			switch r := fReader.Reader.(type) {
+			// strings.Reader is a seeker so we can find where its read up too
 			case io.Seeker:
-				pos, _ := r.Seek(0, os.SEEK_CUR) //pos,_:=r.Seek(0,io.SeekCurrent)
+				pos, _ := r.Seek(0, os.SEEK_CUR)
+				//pos,_:=r.Seek(0,io.SeekCurrent)
 				if pos != 59 {
 					t.Error(fmt.Sprintf("pos not 59 %d", pos))
 				}
@@ -239,40 +242,11 @@ func TestFloatsParse2(t *testing.T) {
 	}
 }
 
-func TestFloatsParseInLines(t *testing.T) {
-	file, err := os.Open("floatlistlong.txt")
-	if err != nil {
-		panic(err)
-	}
-	defer file.Close()
-	lineReader := &SectionReader{Reader:file, Delimiter:'\n'}
-	itemBuf := make([]float64, 4)  // the max floats per line, use append below if not sure, will get index panic if too many. 
-	var r int=1
-	for ;err==nil;r++{
-		floatReader := NewFloats(lineReader, ',')
-		var c int = 0 
-		for i:=0;err==nil && c<len(itemBuf);{
-			i, err = floatReader.Read(itemBuf[c:])
-			c += i
-		}
-		switch err{
-		case EOA:
-			break  // test file has a newline at the end, so last section is empty, ie c==0 when EOA
-		case io.EOF:
-			if c!=3	{t.Errorf("Column count not 3 (%v)", c)}
-			lineReader.Next()
-			err=nil
-			continue
-		case nil:
-			t.Errorf("More data available than fixed limit")
-			break
-		}
-	}
-	if r!=16912	{t.Errorf("Row count not 16912 (%v)", r)}
 
-}
 
-func TestSectionReader(t *testing.T) {
+
+func TestInLines(t *testing.T) {
+
 	source := strings.NewReader(`-0.5639740228652954,3.7998700141906738,2.7228600978851318
 -0.5956140160560607,3.8421299457550049,2.7341499328613281
 -0.606091022491455,3.8560400009155273,2.7367799282073975
@@ -280,71 +254,84 @@ func TestSectionReader(t *testing.T) {
 -0.6186929941177368,3.8725299835205078,2.7368900775909424
 -0.6286190152168273,3.8853299617767334,2.7345600128173828
 -0.6629459857940673,3.9293100833892822,2.7228600978851318
--0.5241180062294006,3.7434799671173096,2.6684000492095947`)
-	os.Mkdir("lines", 0755)
-	lineReader := &SectionReader{Reader:source, Delimiter:'\n'}
-	for lineCounter:=0;lineCounter<100;lineCounter++{
-		w, err := os.Create(fmt.Sprintf("lines/floatlistshort%v.txt",lineCounter))
+-0.5241180062294006,3.7434799671173096,2.6684000492095947
+-0.5456290245056152,3.7739999294281006,2.6988899707794189
+-0.504597008228302,3.7118000984191895,2.589709997177124
+-0.5078420042991638,3.7092099189758301,2.5023701190948486
+-0.5213639736175537,3.7236099243164063,2.4604299068450928
+-0.534754991531372,3.7382500171661377,2.4236800670623779
+-0.5956140160560607,3.7926499843597412,2.7228600978851318
+-0.6325590014457702,3.8010799884796143,2.7228600978851318
+-0.6621860265731811,3.8247001171112061,2.7228600978851318
+-0.6786280274391174,3.8588500022888184,2.7228600978851318
+-0.6786280274391174,3.8967399597167969,2.7228600978851318
+-0.5290420055389404,3.7395598888397217,2.6684000492095947
+-0.5956140160560607,3.7243599891662598,2.6684000492095947
+-0.6621860265731811,3.7395598888397217,2.6684000492095947
+-0.7155719995498657,3.7821300029754639,2.6684000492095947
+-0.745199978351593,3.8436501026153564,2.6684000492095947
+-0.745199978351593,3.9119400978088379,2.6684000492095947
+-0.7155719995498657,3.9734599590301514,2.6684000492095947
+-0.5126000046730041,3.7054100036621094,2.589709997177124
+-0.5956140160560607,3.6864700317382813,2.589709997177124
+-0.6786280274391174,3.7054100036621094,2.589709997177124
+-0.745199978351593,3.7585000991821289,2.589709997177124
+-0.782144010066986,3.8352200984954834,2.589709997177124
+-0.782144010066986,3.9203701019287109,2.589709997177124
+-0.745199978351593,3.9970901012420654,2.589709997177124
+-0.5126000046730041,3.7054100036621094,2.5023701190948486
+-0.5956140160560607,3.6864700317382813,2.5023701190948486
+-0.6786280274391174,3.7054100036621094,2.5023701190948486
+-0.745199978351593,3.7585000991821289,2.5023701190948486
+-0.782144010066986,3.8352200984954834,2.5023701190948486
+-0.782144010066986,3.9203701019287109,2.5023701190948486
+-0.745199978351593,3.9970901012420654,2.5023701190948486
+-0.5956140160560607,3.7243599891662598,2.4236900806427002`)	
+	
+//	lineReader := &PartReader{Reader:bufio.NewReaderSize(source,10), Delimiter:'\n'}
+	lineReader := &PartReader{Reader:source, Delimiter:'\n'}
+	var r int
+	for err:=error(nil);err==nil && r<1e6;r++{
+		_, err = ioutil.ReadAll(lineReader)
 		if err != nil {
 			panic(err)
 		}
-		_,err =io.Copy(w,lineReader)
-		w.Close()
-		if err == EOA {
-			break
-		}else if err!=nil {
-			panic(err)
-		}
-		err=lineReader.Next()  // grab err to stop creating unnecessery file on next loop
-		if err==EOA{break} 
-		if err!=nil{panic(err)} 
+		err = lineReader.Next()
 	}
-	lines,_ := ioutil.ReadDir("lines")
-	if len(lines)!=8{t.Errorf("Not one file per line.")}
+	if r!=40	{t.Errorf("Last Row Not 40 (%v)", r)}
+
 }
 
-//func TestFloatsParseByLine(t *testing.T) {
-//	file, err := os.Open("floatlistlong.txt")
-//	if err != nil {
-//		panic(err)
-//	}
-//	defer file.Close()
-//	fReader := NewFloats(file, ',')
-//	itemBuf := make([]float64, 3)
-//	nextByte := make([]byte, 1)
-//	for err, c, f := error(nil), 0, 0; err == nil; {
-//		c, err = fReader.Read(itemBuf[f:])
-//		f += c
-//		if f < 3 {
-//			continue
-//		}
-//		for err == nil {
-//			if len(fReader.UnBuf) > 0 {
-//				nextByte = fReader.UnBuf[0:1]
-//				if nextByte[0] != ' ' || nextByte[0] != '\n' || nextByte[0] != '\t' || nextByte[0] != '\r' || nextByte[0] != '\f' {
-//					break
-//				}
-//				fReader.UnBuf = fReader.UnBuf[1:]
-//			} else {
-//				_, err = fReader.Reader.Read(nextByte)
-//				if nextByte[0] != ' ' || nextByte[0] != '\n' || nextByte[0] != '\t' || nextByte[0] != '\r' || nextByte[0] != '\f' {
-//					break
-//				}
-//
-//			}
-//		}
-//
-//		f = 0
-//	}
-//}
+func TestFloatsParseInLines(t *testing.T) {
+	file, err := os.Open("floatlistlong.txt")
+	if err != nil {
+		panic(err)
+	}
+	defer file.Close()
+	lineReader := &PartReader{Reader:file, Delimiter:'\n'}
+	var r int
+	var fs []float64
+	for ;err==nil && r<1e6;r++{
+		floatReader := NewFloats(lineReader, ',')
+		fs,err=floatReader.ReadAll()
+		if err != nil {
+			t.Errorf("%v %v", err,fs)
+		}
+		if len(fs)!=3	{t.Errorf("Row %v column count not 3 (%v) %v", r,len(fs),fs)}
+		err = lineReader.Next()
+	}
+	if r!=16910	{t.Errorf("Last Row Not 16910 (%v)", r)}
+
+}
+
 
 func BenchmarkFloat(b *testing.B) {
-	coordsBuf := make([]float64, 20)
+	coordsBuf := make([]float64, 300)
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		reader := strings.NewReader("1,2,3,4,5,6,7,8,9,0")
-		b.StartTimer()
+		reader := strings.NewReader(testData)
 		fReader := NewFloats(reader, ',')
+		b.StartTimer()
 		for err := error(nil); err == nil; {
 			_, err = fReader.Read(coordsBuf)
 		}
@@ -354,7 +341,7 @@ func BenchmarkFloat(b *testing.B) {
 func BenchmarkFloatCompare(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		reader := strings.NewReader("1,2,3,4,5,6,7,8,9,0")
+		reader := strings.NewReader(testData)
 		fReader := csv.NewReader(reader)
 		b.StartTimer()
 		rows, _ := fReader.ReadAll()
@@ -369,7 +356,7 @@ func BenchmarkFloatCompare(b *testing.B) {
 func BenchmarkFloatCompare2(b *testing.B) {
 	for i := 0; i < b.N; i++ {
 		b.StopTimer()
-		r := strings.NewReader("1,2,3,4,5,6,7,8,9,0")
+		r := strings.NewReader(testData)
 		b.StartTimer()
 		_, err := ReadFloats(r)
 		if err != nil {
@@ -385,8 +372,8 @@ func BenchmarkFloatFile(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		b.StartTimer()
 		fReader := NewFloats(file, ',')
+		b.StartTimer()
 		for err := error(nil); err == nil; {
 			_, err = fReader.Read(coordsBuf)
 		}
@@ -404,8 +391,8 @@ func BenchmarkFloatMemoryFile(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		b.StartTimer()
 		fReader := NewFloats(file, ',')
+		b.StartTimer()
 		for err := error(nil); err == nil; {
 			_, err = fReader.Read(coordsBuf)
 		}
@@ -421,8 +408,8 @@ func BenchmarkFloatCounterFile(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
+		fReader := NewFloatsSize(&CountingReader{Reader:file}, ',', 1)
 		b.StartTimer()
-		fReader := NewFloatsSize(CountingReader{Reader:file}, ',', 1)
 		for err := error(nil); err == nil; {
 			_, err = fReader.Read(coordsBuf)
 		}
@@ -437,8 +424,8 @@ func BenchmarkFloatFileCompare(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		b.StartTimer()
 		fReader := csv.NewReader(bufio.NewReaderSize(file, 10000))
+		b.StartTimer()
 		rows, _ := fReader.ReadAll()
 		for _, row := range rows {
 			for _, item := range row {
@@ -464,8 +451,8 @@ func BenchmarkFloatFileWithWork(b *testing.B) {
 		if err != nil {
 			panic(err)
 		}
-		b.StartTimer()
 		fReader := NewFloats(file, ',')
+		b.StartTimer()
 		for err := error(nil); err == nil; {
 			c, err = fReader.Read(coord[:])
 			if c == 3 {
@@ -519,79 +506,56 @@ func BenchmarkFloatFileCompareWithWork(b *testing.B) {
 	}
 }
 
-func BenchmarkFloatZippedFileLineReader(b *testing.B) {
-	var tot float64
-	for i := 0; i < b.N; i++ {
-		gzfile, err := os.Open("floatlistlong.gz")
-		if err != nil {
-			panic(err)
-		}
-		file, err := readerFromZippedReader(gzfile)
-		if err != nil {
-			panic(err)
-		}
-		b.StartTimer()
-		lineReader := &SectionReader{Reader:file, Delimiter:'\n'}
-		itemBuf := make([]float64, 4) 
-		var r int=1
-		for ;err==nil;r++{
-			floatReader := NewFloats(lineReader, ',')
-			var c int = 0 
-			for i:=0;err==nil && c<len(itemBuf);{
-				i, err = floatReader.Read(itemBuf[c:])
-				c += i
-			}
-			switch err{
-			case EOA:
-				break
-			case io.EOF:
-				tot +=itemBuf[0]
-				tot +=itemBuf[1]
-				tot +=itemBuf[2]
-				lineReader.Next()
-				err=nil
-				continue
-			}
-		}
-		b.StopTimer()
-	}
-}
-
-/*  Hal3 Tue 29 Aug 01:30:10 BST 2017 go version go1.6.2 linux/amd64
-PASS
-BenchmarkFloat-2                    	 1000000	      1408 ns/op
-BenchmarkFloatCompare-2             	  300000	      6046 ns/op
-BenchmarkFloatCompare2-2            	  200000	      7345 ns/op
-BenchmarkFloatFile-2                	     100	  20003621 ns/op
-BenchmarkFloatMemoryFile-2          	     100	  18542290 ns/op
-BenchmarkFloatCounterFile-2         	       2	 747042539 ns/op
-BenchmarkFloatFileCompare-2         	      20	  62331769 ns/op
-BenchmarkFloatFileWithWork-2        	      50	  33405882 ns/op
-BenchmarkFloatFileCompareWithWork-2 	      20	  69692015 ns/op
-BenchmarkFloatZippedFileLineReader-2	      20	  92966125 ns/op
-ok  	_/home/simon/Dropbox/github/working/listreader	59.497s
-Tue 29 Aug 01:31:11 BST 2017
-*/
-
-
-
-/*  Hal3 Mon 28 Aug 17:05:54 BST 2017  go version go1.9beta1 linux/amd64
+/*  Hal3 Sun 3 Sep 22:52:12 BST 2017  go version go1.9 linux/amd64
 
 goos: linux
 goarch: amd64
-BenchmarkFloat-2                       	 2000000	       737 ns/op
-BenchmarkFloatCompare-2                	 1000000	      2407 ns/op
-BenchmarkFloatCompare2-2               	  300000	      4433 ns/op
-BenchmarkFloatFile-2                   	     200	   9688695 ns/op
-BenchmarkFloatMemoryFile-2             	     200	   8127035 ns/op
-BenchmarkFloatCounterFile-2            	       2	 779873134 ns/op
-BenchmarkFloatFileCompare-2            	      30	  42933268 ns/op
-BenchmarkFloatFileWithWork-2           	     100	  18384101 ns/op
-BenchmarkFloatFileCompareWithWork-2    	      30	  51011531 ns/op
-BenchmarkFloatZippedFileLineReader-2   	      20	  78148267 ns/op
+BenchmarkFloat-2                       	  100000	     14405 ns/op
+BenchmarkFloatCompare-2                	   20000	     68043 ns/op
+BenchmarkFloatCompare2-2               	   50000	     28449 ns/op
+BenchmarkFloatFile-2                   	     200	   9680953 ns/op
+BenchmarkFloatMemoryFile-2             	     200	   8184801 ns/op
+BenchmarkFloatCounterFile-2            	       2	 862782723 ns/op
+BenchmarkFloatFileCompare-2            	      30	  43594832 ns/op
+BenchmarkFloatFileWithWork-2           	     100	  18514312 ns/op
+BenchmarkFloatFileCompareWithWork-2    	      30	  50892367 ns/op
+BenchmarkFloatZippedFileLineReader-2   	      20	  78055536 ns/op
 PASS
-ok  	_/home/simon/Dropbox/github/working/listreader	24.961s
-Mon 28 Aug 17:06:20 BST 2017
+ok  	_/home/simon/Dropbox/github/working/listreader	23.381s
+Sun 3 Sep 22:52:36 BST 2017
+*/
+/*  Hal3 Sun 3 Sep 22:54:00 BST 2017 go version go1.6.2 linux/amd64
+PASS
+BenchmarkFloat-2                    	   50000	     35018 ns/op
+BenchmarkFloatCompare-2             	   20000	     92929 ns/op
+BenchmarkFloatCompare2-2            	   50000	     35112 ns/op
+BenchmarkFloatFile-2                	      50	  20302650 ns/op
+BenchmarkFloatMemoryFile-2          	     100	  19137999 ns/op
+BenchmarkFloatCounterFile-2         	       2	 735910103 ns/op
+BenchmarkFloatFileCompare-2         	      20	  64037520 ns/op
+BenchmarkFloatFileWithWork-2        	      50	  33889021 ns/op
+BenchmarkFloatFileCompareWithWork-2 	      20	  71135486 ns/op
+BenchmarkFloatZippedFileLineReader-2	      20	  93140291 ns/op
+ok  	_/home/simon/Dropbox/github/working/listreader	22.480s
+Sun 3 Sep 22:54:29 BST 2017
 */
 
+
+/*  Hal3 Thu 7 Sep 23:56:28 BST 2017 go version go1.6.2 linux/amd64
+=== RUN   TestFloatsRandom
+--- PASS: TestFloatsRandom (0.00s)
+=== RUN   TestFloatsParse
+--- PASS: TestFloatsParse (0.00s)
+=== RUN   TestFloatsParseNaN
+--- PASS: TestFloatsParseNaN (0.00s)
+=== RUN   TestFloatsParse2
+--- PASS: TestFloatsParse2 (0.00s)
+=== RUN   TestInLines
+--- PASS: TestInLines (0.00s)
+=== RUN   TestFloatsParseInLines
+--- PASS: TestFloatsParseInLines (0.04s)
+PASS
+ok  	_/home/simon/Dropbox/github/working/listreader	0.047s
+Thu 7 Sep 23:56:30 BST 2017
+*/
 

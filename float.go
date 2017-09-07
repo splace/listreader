@@ -5,7 +5,6 @@ import "math"
 import "bytes"
 import "strconv"
 
-
 type progress uint8
 
 const (
@@ -53,7 +52,7 @@ func NewFloatsSize(r io.Reader, d byte, bSize int) *Floats {
 
 // ReadAll returns all the floating-point decodes available from Floats, in a slice, and the first encountered parse, or any embedded Reader, Error.
 func (l *Floats) ReadAll() (fs []float64, err error) {
-	fbuf := make([]float64, 100)
+	fbuf := make([]float64,bytes.MinRead)
 	for {
 		c, rerr := l.Read(fbuf)
 		fs = append(fs, fbuf[:c]...)
@@ -137,9 +136,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	setVal = func() {
 		switch l.stage {
 		case errorDot, errorExp, errorNothing, errorSign, errorNondigit, exponentSign:
-			if err == nil {
-				err = ParseError(l.stage)
-			}
+			err = ParseError(l.stage)
 			fs[c] = math.NaN()
 		case inWhole, beginFraction:
 			fs[c] = float64(l.whole)
@@ -168,7 +165,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	if len(l.UnBuf) > 0 { // use any unprocessed first
 		n = len(l.UnBuf)
 		b = l.UnBuf
-		l.UnBuf = l.UnBuf[0:0]
+		l.UnBuf = nil
 	} else {
 		// don’t override an existing parse error (embedded Reader error will still be available on subsequent call.)
 		if err == nil {
