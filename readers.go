@@ -3,9 +3,7 @@ package listreader
 import "io"
 import "bytes"
 
-// PartReaders return the, potentially buffered, result of calling Read on the embedded Reader, on encountering the Delimiter they return an err of io.EOF.
-// A call to Next() Reads from the embedded reader, if needed, until just after a delimiter is found.
-// Any error, from the embedded Reader, encountered while running Next() is returned. 
+// PartReader is a Reader that ends, as far as Reader consumers are concerned, when it finds a particular Delimiter, but that can be restarted. 
 type PartReader struct {
 	io.Reader
 	Delimiter    byte
@@ -14,7 +12,7 @@ type PartReader struct {
 	unused []byte
 }
 
-// Reader compliant Read method.
+// Read returns bytes, and errors, from the embedded Reader, when the Delimiter is encountered an err of io.EOF is returned.
 func (dr *PartReader) Read(p []byte) (n int, err error) {
 	if dr.delimiterFound {
 		return 0, io.EOF
@@ -48,6 +46,8 @@ func (dr *PartReader) Read(p []byte) (n int, err error) {
 	return
 }
 
+// Next Reads from the embedded reader, if needed, until just after Delimiter is found.
+// Any error encountered is returned. 
 func (dr *PartReader) Next() (err error) {
 	dr.Count++
 	if !dr.delimiterFound {
@@ -64,27 +64,27 @@ func (dr *PartReader) Next() (err error) {
 	return
 }
 
-// CountingReader's Read from the embedded Reader keeping a running total of the number of bytes read.
+// CountingReader is a Reader that keeps a running total of the number of bytes it reads.
 type CountingReader struct {
 	io.Reader
 	Total int64
 }
 
-// Reader compliant Read method.
+// Read returns bytes, and errors, from the embedded Reader.
 func (cr *CountingReader) Read(p []byte) (n int, err error) {
 	n, err = cr.Reader.Read(p)
 	cr.Total += int64(n)
 	return
 }
 
-// CancelableReader's pass back the result of calling Read() on their embedded Reader, except when their Cancel property is True, then they return an n of 0 and an err of io.EOF.
-// If the embedded Reader is also a Closer, calling Read() will automatically call Close() on it. (when Cancel is True.)
+// CancelableReader is a Reader that can be stopped.
 type CancelableReader struct {
 	io.Reader
 	Cancel bool
 }
 
-// Reader compliant Read method.
+// Read returns bytes, and errors, from the embedded Reader, unless Cancel is True, then it returns an n of 0 and an err of io.EOF.
+// if the Embedded Reader is also a Closer then Close() is called when Cancel is True.
 func (cr CancelableReader) Read(p []byte) (n int, err error) {
 	if cr.Cancel {
 		if r,is:=cr.Reader.(io.Closer);is{
