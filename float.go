@@ -35,7 +35,7 @@ type Floats struct {
 	stage          progress // progress stage or error hit.
 	neg            bool     // if negative number
 	whole          uint64   // whole number section read so far.
-	wholeExponent  uint16   // extra zero digits.
+	wholeExponent  uint16   // extra positioning only digits.
 	fraction       uint64   // fraction section read so far.
 	fractionDigits uint16   // count of fractional section digits.
 	exponent       uint16   // exponent section so far read.
