@@ -20,10 +20,13 @@ const (
 	errorNothing
 	errorSign
 	errorNondigit
-	errorTooLarge
+	errorPrecisionLimited
+	errorFractionPrecisionLimited
+	errorExpPrecisionLimited
 )
 
-const maxUint = math.MaxUint64 / 10
+const maxUint64 = math.MaxUint64 / 10
+const maxUint16 = math.MaxUint16 / 10
 
 // Floats is the state, and behaviour, of a floating-point Reader.
 type Floats struct {
@@ -32,9 +35,10 @@ type Floats struct {
 	stage          progress // progress stage or error hit.
 	neg            bool     // if negative number
 	whole          uint64   // whole number section read so far.
+	wholeExponent  uint16   // extra zero digits.
 	fraction       uint64   // fraction section read so far.
-	fractionDigits uint8    // count of fractional section digits.
-	exponent       uint64   // exponent section so far read.
+	fractionDigits uint16   // count of fractional section digits.
+	exponent       uint16   // exponent section so far read.
 	negExponent    bool     // if exponent negative
 	buf            []byte   // internal buffer.
 	UnBuf          []byte   // unconsumed bytes after last Read.
@@ -91,8 +95,12 @@ func (pe ParseError) Error() string {
 		return "Non Numeric/White-space/Delimiter encountered"
 	case exponentSign:
 		return "No Exponent found"
-	case errorTooLarge:
-		return "Value too large"
+	case errorPrecisionLimited:
+		return "Value precision lost in convertion to float64"
+	case errorFractionPrecisionLimited:
+		return "Value precision lost in convertion to float64"
+	case errorExpPrecisionLimited:
+		return "Value precision lost in convertion to float64"
 	default:
 		return "Unknown:#" + strconv.Itoa(int(pe))
 	}
@@ -104,8 +112,8 @@ func (pe ParseError) Error() string {
 // Internal buffering means the underlying io.Reader will in general be read past the location of the returned values. (unless the internal buffer length is set to 1.)
 func (l *Floats) Read(fs []float64) (c int, err error) {
 	// optimisation: power ten of int
-	var power10 func(uint64) float64 
-	power10 = func(n uint64) float64 {
+	var power10 func(uint16) float64 
+	power10 = func(n uint16) float64 {
 		switch n {
 		case 0:
 			return 1
@@ -135,24 +143,31 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 	var setVal func()
 	setVal = func() {
 		switch l.stage {
-		case errorDot, errorExp, errorNothing, errorSign, errorNondigit, exponentSign:
+		case errorDot, errorExp, errorNothing, errorSign, errorNondigit, exponentSign, errorExpPrecisionLimited:
 			err = ParseError(l.stage)
 			fs[c] = math.NaN()
+		case errorPrecisionLimited:
+			err = ParseError(l.stage)
+			fs[c] = float64(l.whole)*power10(l.wholeExponent)
 		case inWhole, startFraction:
 			fs[c] = float64(l.whole)
+		case errorFractionPrecisionLimited:
+			err = ParseError(l.stage)
+			fallthrough
 		case inFraction:
-			fs[c] = float64(l.whole) + float64(l.fraction)/power10(uint64(l.fractionDigits))
+			fs[c] = float64(l.whole) + float64(l.fraction)/power10(l.fractionDigits)
 		default:
 			if l.negExponent {
-				fs[c] = (float64(l.whole) + float64(l.fraction)/power10(uint64(l.fractionDigits))) / power10(l.exponent)
+				fs[c] = (float64(l.whole) + float64(l.fraction)/power10(l.fractionDigits)) / power10(l.exponent)
 			} else {
-				fs[c] = (float64(l.whole) + float64(l.fraction)/power10(uint64(l.fractionDigits))) * power10(l.exponent)
+				fs[c] = (float64(l.whole) + float64(l.fraction)/power10(l.fractionDigits)) * power10(l.exponent)
 			}
 		}
 		if l.neg {
 			fs[c] = -fs[c]
 		}
 		l.whole = 0
+		l.wholeExponent=0
 		l.fraction = 0
 		l.fractionDigits = 0
 		l.exponent = 0
@@ -179,15 +194,16 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 		switch b[i] {
 		case '0', '1', '2', '3', '4', '5', '6', '7', '8', '9':
 			switch l.stage {
-			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
+			case errorPrecisionLimited:
+				l.wholeExponent++
 			case delimFound, start:
 				l.stage = inWhole
 				l.whole = uint64(b[i]) - 48
 			case inWhole:
-				if l.whole > maxUint {
-					l.stage = errorTooLarge
+				l.whole *= 10
+				if l.whole > maxUint64 {
+					l.stage = errorPrecisionLimited
 				} else {
-					l.whole *= 10
 					l.whole += uint64(b[i]) - 48
 				}
 			case startFraction:
@@ -195,8 +211,8 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 				l.fraction = uint64(b[i]) - 48
 				l.fractionDigits = 1
 			case inFraction:
-				if l.fraction > maxUint {
-					l.stage = errorTooLarge
+				if l.fraction > maxUint64 {
+					l.stage = errorFractionPrecisionLimited
 				} else {
 					l.fraction *= 10
 					l.fraction += uint64(b[i]) - 48
@@ -206,16 +222,15 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 				l.stage = inExponent
 				fallthrough
 			case inExponent:
-				if l.exponent > maxUint {
-					l.stage = errorTooLarge
+				if l.exponent > maxUint16 {
+					l.stage = errorExpPrecisionLimited
 				} else {
 					l.exponent *= 10
-					l.exponent += uint64(b[i]) - 48
+					l.exponent += uint16(b[i]) - 48
 				}
 			}
 		case '.':
 			switch l.stage {
-			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			case delimFound, start, inWhole:
 				l.stage = startFraction
 			case startFraction, inFraction, exponentSign, inExponent:
@@ -223,7 +238,6 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case 'e', 'E':
 			switch l.stage {
-			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			case inWhole, inFraction:
 				l.stage = exponentSign
 			case delimFound, start, startFraction, exponentSign, inExponent:
@@ -269,7 +283,6 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '-':
 			switch l.stage {
-			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			case delimFound, start:
 				l.neg = true
 				l.stage = inWhole
@@ -281,7 +294,6 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 			}
 		case '+':
 			switch l.stage {
-			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
 			case delimFound, start:
 				l.stage = inWhole
 			case exponentSign:
@@ -292,8 +304,7 @@ func (l *Floats) Read(fs []float64) (c int, err error) {
 
 		default:
 			switch l.stage {
-			case errorDot, errorExp, errorNothing, errorSign, errorNondigit, errorTooLarge:
-			default:
+			case delimFound, start, inWhole, startFraction, inFraction, exponentSign, inExponent:
 				l.stage = errorNondigit
 			}
 		}

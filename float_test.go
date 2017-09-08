@@ -324,6 +324,21 @@ func TestFloatsParseInLines(t *testing.T) {
 
 }
 
+func TestFloatsOverlongText(t *testing.T) {
+	floatReader := NewFloats(strings.NewReader("248750923867023987653985467039485763984576039865"), ',')
+	fs,err:=floatReader.ReadAll()
+	if pe,is:=err.(ParseError);is {
+		if pe!=ParseError(errorPrecisionLimited) {t.Error("Didn't return lost precision parse error:"+pe.Error())}
+	}
+	if err == nil {
+		t.Errorf("%v %v", err,fs)
+	}
+	if len(fs)!=1	{t.Errorf("Not one")}
+	
+	if fs[0]!=2.4875092386702397e+47 {t.Errorf("Not parsed right value")}
+
+}
+
 
 func BenchmarkFloat(b *testing.B) {
 	coordsBuf := make([]float64, 300)
@@ -541,21 +556,4 @@ Sun 3 Sep 22:54:29 BST 2017
 */
 
 
-/*  Hal3 Thu 7 Sep 23:56:28 BST 2017 go version go1.6.2 linux/amd64
-=== RUN   TestFloatsRandom
---- PASS: TestFloatsRandom (0.00s)
-=== RUN   TestFloatsParse
---- PASS: TestFloatsParse (0.00s)
-=== RUN   TestFloatsParseNaN
---- PASS: TestFloatsParseNaN (0.00s)
-=== RUN   TestFloatsParse2
---- PASS: TestFloatsParse2 (0.00s)
-=== RUN   TestInLines
---- PASS: TestInLines (0.00s)
-=== RUN   TestFloatsParseInLines
---- PASS: TestFloatsParseInLines (0.04s)
-PASS
-ok  	_/home/simon/Dropbox/github/working/listreader	0.047s
-Thu 7 Sep 23:56:30 BST 2017
-*/
 
