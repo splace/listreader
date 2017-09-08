@@ -1,7 +1,7 @@
 # listreader
 
 
-4+ times faster than naive std lib implementation.(using csv.reader or bufio.Scanner)
+2+ times faster than naive std lib implementation.(using csv.reader or bufio.Scanner)
 
 100MB/s for me, YRMV.
 
