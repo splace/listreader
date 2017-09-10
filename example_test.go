@@ -5,7 +5,7 @@ import "github.com/splace/listreader"
 import "strings"
 import "fmt"
 
-func ExampleCSV() {
+func ExampleFloats() {
 	source:=strings.NewReader("1,2,3\n4,5,6,7")
 	lineReader := &listreader.PartReader{Reader:source, Delimiter:'\n'}
 	for {
