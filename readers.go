@@ -21,12 +21,23 @@ func (dr *PartReader) Read(p []byte) (n int, err error) {
 	var c int
 	var b byte
 	if len(dr.unused)>0{
-		for n,b = range dr.unused {
-			if b == dr.Delimiter {
-				dr.delimiterFound = true
-				copy(p[:n],dr.unused)
-				dr.unused=dr.unused[n+1:]
-				return n, io.EOF
+		if len(dr.unused)>len(p) {
+			for n,b = range dr.unused[:len(p)] {
+				if b == dr.Delimiter {
+					dr.delimiterFound = true
+					copy(p[:n],dr.unused)
+					dr.unused=dr.unused[n+1:]
+					return n, io.EOF
+				}
+			}
+		}else{
+			for n,b = range dr.unused {
+				if b == dr.Delimiter {
+					dr.delimiterFound = true
+					copy(p[:n],dr.unused)
+					dr.unused=dr.unused[n+1:]
+					return n, io.EOF
+				}
 			}
 		}
 		n=copy(p,dr.unused)
@@ -53,6 +64,7 @@ func (dr *PartReader) Next() (err error) {
 	dr.Count++
 	if !dr.delimiterFound {
 		// read and discard remains of section.
+		// TODO could read directly any unused, stoping  copying taking place
 		buf := make([]byte, bytes.MinRead)
 		for {
 			_, err = dr.Read(buf)
