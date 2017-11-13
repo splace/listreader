@@ -105,7 +105,7 @@ func (cr CancelableReader) Read(p []byte) (n int, err error) {
 
 // ConcatReader returns a Reader that returns bytes from Reader's it receives through the provided channel.
 // ConcatReader will block waiting for the first Reader on the channel. 
-// When one of this Reader's received Readers returns EOF, the Read method tries to return bytes from the next recieved Reader, if none is available Read will block.
+// When one of this Reader's received Readers returns EOF, the Read method tries to return bytes from the next received Reader, if none is available Read will block.
 // If a received Reader returns a non-nil, non-EOF error, Read will return that error.
 // If a received Reader is a ReadCloser then close is called on it when it returns an EOF.
 // The Reader returns EOF when the channel is closed.
