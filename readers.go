@@ -3,9 +3,11 @@ package listreader
 import "io"
 import "bytes"
 
-// PartReader is a Reader that ends, as far as Reader consumers are concerned, when it encounters a particular Delimiter.
-// Calling its Next() method reads over the next occurrence of Delimiter, allowing continued reading, and it increments Count.
-type PartReader struct {
+// SeparatedReaders is a sequence of Readers, becoming a new Reader whenever the Next method is called.
+// Each Reader ends when the byte indicated by Delimiter is Read from the embedded Reader, without returning it.
+// Each call to Next discards bytes up to and including the next occurrence of Delimiter and increments Count.
+// Code accepting it should finish before Next is called, when it can then be handled by some other Reader accepting code.
+type SeparatedReaders struct {
 	io.Reader
 	Count uint
 	Delimiter    byte
@@ -14,7 +16,7 @@ type PartReader struct {
 }
 
 // Read places bytes, from the embedded Reader, into the provided array, when the Delimiter is encountered an error of io.EOF is returned.
-func (dr *PartReader) Read(p []byte) (n int, err error) {
+func (dr *SeparatedReaders) Read(p []byte) (n int, err error) {
 	if dr.delimiterFound {
 		return 0, io.EOF
 	}
@@ -53,7 +55,7 @@ func (dr *PartReader) Read(p []byte) (n int, err error) {
 
 // Next Reads and discards from the embedded reader a Delimiter, and anything up to it.
 // Any error encountered is returned. 
-func (dr *PartReader) Next() (err error) {
+func (dr *SeparatedReaders) Next() (err error) {
 	dr.Count++
 	if !dr.delimiterFound {
 		// read and discard remains of section.

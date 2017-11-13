@@ -289,7 +289,7 @@ func TestInLines(t *testing.T) {
 -0.5956140160560607,3.7243599891662598,2.4236900806427002`)	
 	
 //	lineReader := &PartReader{Reader:bufio.NewReaderSize(source,10), Delimiter:'\n'}
-	lineReader := &PartReader{Reader:source, Delimiter:'\n'}
+	lineReader := &SeparatedReaders{Reader:source, Delimiter:'\n'}
 	var r int
 	for err:=error(nil);err==nil && r<1e6;r++{
 		_, err = ioutil.ReadAll(lineReader)
@@ -308,7 +308,7 @@ func TestFloatsParseInLines(t *testing.T) {
 		panic(err)
 	}
 	defer file.Close()
-	lineReader := &PartReader{Reader:file, Delimiter:'\n'}
+	lineReader := &SeparatedReaders{Reader:file, Delimiter:'\n'}
 	var r int
 	var fs []float64
 	for ;err==nil && r<1e6;r++{
