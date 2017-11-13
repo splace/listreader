@@ -4,7 +4,7 @@ import "io"
 import "bytes"
 
 // PartReader is a Reader that ends, as far as Reader consumers are concerned, when it encounters a particular Delimiter.
-// Next() allows more to be Read from them, up to the next occurrence of Delimiter. 
+// Calling its Next() method reads over the next occurrence of Delimiter, allowing continued reading, and it increments Count.
 type PartReader struct {
 	io.Reader
 	Count uint
@@ -13,7 +13,7 @@ type PartReader struct {
 	unused []byte
 }
 
-// Read returns bytes, and errors, from the embedded Reader, when the Delimiter is encountered an err of io.EOF is returned.
+// Read places bytes, from the embedded Reader, into the provided array, when the Delimiter is encountered an error of io.EOF is returned.
 func (dr *PartReader) Read(p []byte) (n int, err error) {
 	if dr.delimiterFound {
 		return 0, io.EOF
@@ -51,13 +51,13 @@ func (dr *PartReader) Read(p []byte) (n int, err error) {
 	return
 }
 
-// Next Reads from the embedded reader, if needed, until Delimiter is found.
+// Next Reads and discards from the embedded reader a Delimiter, and anything up to it.
 // Any error encountered is returned. 
 func (dr *PartReader) Next() (err error) {
 	dr.Count++
 	if !dr.delimiterFound {
 		// read and discard remains of section.
-		// TODO could read directly any unused, stoping  copying taking place
+		// TODO could read directly any unused, reducing copying taking place
 		buf := make([]byte, bytes.MinRead)
 		for {
 			_, err = dr.Read(buf)
@@ -105,10 +105,10 @@ func (cr CancelableReader) Read(p []byte) (n int, err error) {
 
 // ConcatReader returns a Reader that returns bytes from Reader's it receives through the provided channel.
 // ConcatReader will block waiting for the first Reader on the channel. 
-// When one of this Reader's received Readers returns EOF, the Read method tries to return bytes from the next received Reader, if none is available Read will block.
+// When one of this Reader's received Readers returns EOF, subsequent Reads return bytes from the next received Reader, if none is available Read will block.
 // If a received Reader returns a non-nil, non-EOF error, Read will return that error.
-// If a received Reader is a ReadCloser then close is called on it when it returns an EOF.
 // The Reader returns EOF when the channel is closed.
+// If a received Reader is a ReadCloser then close is called on it when it returns an EOF.
 func ConcatReader(r <-chan io.Reader) io.Reader{
 	return &concatReader{readers:r,currentReader: <-r}
 }
@@ -121,6 +121,10 @@ type concatReader struct{
 func (cr *concatReader) Read(p []byte) (n int, err error){
 	n,err=cr.currentReader.Read(p)
 	if err==io.EOF{
+		if n>0 {
+			err=nil
+			return
+			}
 		if crc,ok:=cr.currentReader.(io.ReadCloser);ok{
 			crc.Close()
 		}
